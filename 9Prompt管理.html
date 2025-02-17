@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知识库管理系统</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+theme: {
+extend: {
+colors: {
+primary: '#1677FF',
+secondary: '#4096ff'
+},
+borderRadius: {
+'none': '0px',
+'sm': '2px',
+DEFAULT: '4px',
+'md': '8px',
+'lg': '12px',
+'xl': '16px',
+'2xl': '20px',
+'3xl': '24px',
+'full': '9999px',
+'button': '4px'
+}
+}
+}
+}
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+input[type="range"] {
+-webkit-appearance: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+-webkit-appearance: none;
+appearance: none;
+width: 16px;
+height: 16px;
+background: #fff;
+border: 2px solid #1677FF;
+border-radius: 50%;
+cursor: pointer;
+margin-top: -7px;
+}
+input[type="range"]::-moz-range-thumb {
+width: 16px;
+height: 16px;
+background: #fff;
+border: 2px solid #1677FF;
+border-radius: 50%;
+cursor: pointer;
+}
+.sidebar-item {
+display: flex;
+align-items: center;
+padding: 12px 24px;
+color: #ffffff;
+opacity: 0.8;
+transition: all 0.3s;
+}
+.sidebar-item:hover {
+opacity: 1;
+background: rgba(255,255,255,0.1);
+}
+.sidebar-item.active {
+opacity: 1;
+background: rgba(255,255,255,0.1);
+}
+.sidebar-item i {
+width: 20px;
+height: 20px;
+display: flex;
+justify-content: center;
+align-items: center;
+margin-right: 8px;
+}
+.search-input {
+border: 1px solid #d9d9d9;
+transition: all 0.3s;
+}
+.search-input:focus {
+border-color: #1677FF;
+box-shadow: 0 0 0 2px rgba(22,119,255,0.2);
+}
+.card {
+transition: all 0.3s;
+}
+.card:hover {
+box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.modal {
+display: none;
+background: rgba(0,0,0,0.45);
+}
+.modal.show {
+display: flex;
+}
+</style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+<div class="flex min-h-screen w-screen max-w-[1920px] mx-auto">
+<!-- 左侧导航 -->
+<div class="w-[200px] bg-[#001529] flex-shrink-0 flex flex-col justify-between transition-all duration-300" id="sidebar">
+<div>
+<div class="h-[64px] flex items-center px-6 justify-between">
+<span class="text-white text-xl font-bold">Weave RAG</span>
+<button onclick="toggleSidebar()" class="text-white hover:text-gray-300">
+<i class="fas fa-bars"></i>
+</button>
+</div>
+<div class="flex flex-col">
+<a href="#" class="sidebar-item">
+<i class="fas fa-database"></i>
+<span>知识库</span>
+</a>
+<a href="#" class="sidebar-item">
+<i class="fas fa-comments"></i>
+<span>聊天</span>
+</a>
+<a href="#" class="sidebar-item active">
+<i class="fas fa-code"></i>
+<span>Prompt管理</span>
+</a>
+</div>
+</div>
+<!-- 用户信息 -->
+<div class="border-t border-gray-700 p-4">
+<div class="flex items-center">
+<img src="https://ai-public.mastergo.com/ai/img_res/2e27f63843aa1dba31e76ff7f970e482.jpg" class="w-10 h-10 rounded-full object-cover mr-3">
+<div class="flex-1">
+<div class="text-white text-sm">Thomas Anderson</div>
+<div class="text-gray-400 text-xs">Lead Developer</div>
+</div>
+<button class="text-gray-400 hover:text-white">
+<i class="fas fa-sign-out-alt"></i>
+</button>
+</div>
+</div>
+</div>
+<!-- 右侧内容区 -->
+<div class="flex-1 flex flex-col h-screen">
+<!-- 顶部工具栏 -->
+<div class="p-6 pb-0">
+<div class="flex items-center text-sm text-gray-500 mb-6">
+<a href="#" class="hover:text-primary">首页</a>
+<i class="fas fa-angle-right mx-2 text-gray-400"></i>
+<a href="#" class="hover:text-primary">Prompt管理</a>
+<i class="fas fa-angle-right mx-2 text-gray-400"></i>
+<span class="text-gray-900">模版列表</span>
+</div>
+<div class="flex gap-2 items-center mb-6">
+<div class="relative flex-1 max-w-[480px]">
+<input type="text" class="w-full h-[32px] pl-8 pr-3 rounded-button border border-gray-300 focus:border-primary search-input" placeholder="搜索Prompt模版...">
+<i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+</div>
+<button onclick="showAssistantModal()" class="flex items-center px-4 h-[32px] bg-primary text-white rounded-button hover:bg-secondary whitespace-nowrap">
+<i class="fas fa-plus mr-2"></i>
+新建模版
+</button>
+</div>
+<div class="flex justify-between items-center mb-6">
+<div class="flex gap-2">
+<button class="px-3 py-1 text-sm rounded-button border border-gray-200 text-gray-600 hover:border-primary hover:text-primary bg-white">
+全部分类
+</button>
+<button class="px-3 py-1 text-sm rounded-button border border-gray-200 text-gray-600 hover:border-primary hover:text-primary bg-white">
+对话型
+</button>
+<button class="px-3 py-1 text-sm rounded-button border border-gray-200 text-gray-600 hover:border-primary hover:text-primary bg-white">
+分析型
+</button>
+<button class="px-3 py-1 text-sm rounded-button border border-gray-200 text-gray-600 hover:border-primary hover:text-primary bg-white">
+创作型
+</button>
+<button class="px-3 py-1 text-sm rounded-button border border-gray-200 text-gray-600 hover:border-primary hover:text-primary bg-white">
+翻译型
+</button>
+</div>
+<div class="flex gap-2">
+<button onclick="switchView('grid')" class="p-1 text-primary border-none" title="网格视图">
+<i class="fas fa-grip"></i>
+</button>
+<button onclick="switchView('table')" class="p-1 text-gray-400 hover:text-primary border-none" title="表格视图">
+<i class="fas fa-list"></i>
+</button>
+</div>
+</div>
+</div>
+<!-- 内容区域 -->
+<div class="px-6">
+<div class="overflow-auto">
+<!-- 网格视图 -->
+<div class="grid-view">
+<div class="grid grid-cols-3 gap-4">
+<!-- 卡片1 -->
+<div class="bg-white p-4 rounded-lg border border-gray-200 hover:border-primary cursor-pointer">
+<div class="flex items-center justify-between mb-3">
+<span class="px-2 py-1 text-xs text-primary bg-blue-50 rounded">对话型</span>
+<div class="flex items-center space-x-2">
+<button class="text-gray-400 hover:text-primary"><i class="far fa-edit"></i></button>
+<button class="text-gray-400 hover:text-red-500"><i class="far fa-trash-alt"></i></button>
+</div>
+</div>
+<h3 class="text-base font-medium mb-2">客服对话助手</h3>
+<p class="text-sm text-gray-500 mb-4 line-clamp-2">专业的客服对话模板，包含问候语、常见问题解答、情绪安抚等场景</p>
+<div class="flex items-center justify-between text-xs text-gray-500">
+<span>更新时间：2024-01-20</span>
+<span>使用次数：1,234</span>
+</div>
+</div>
+<!-- 卡片2 -->
+<div class="bg-white p-4 rounded-lg border border-gray-200 hover:border-primary cursor-pointer">
+<div class="flex items-center justify-between mb-3">
+<span class="px-2 py-1 text-xs text-green-600 bg-green-50 rounded">分析型</span>
+<div class="flex items-center space-x-2">
+<button class="text-gray-400 hover:text-primary"><i class="far fa-edit"></i></button>
+<button class="text-gray-400 hover:text-red-500"><i class="far fa-trash-alt"></i></button>
+</div>
+</div>
+<h3 class="text-base font-medium mb-2">数据分析助手</h3>
+<p class="text-sm text-gray-500 mb-4 line-clamp-2">提供数据分析思路，包括数据清洗、统计分析、可视化建议等</p>
+<div class="flex items-center justify-between text-xs text-gray-500">
+<span>更新时间：2024-01-19</span>
+<span>使用次数：856</span>
+</div>
+</div>
+<!-- 卡片3 -->
+<div class="bg-white p-4 rounded-lg border border-gray-200 hover:border-primary cursor-pointer">
+<div class="flex items-center justify-between mb-3">
+<span class="px-2 py-1 text-xs text-purple-600 bg-purple-50 rounded">创作型</span>
+<div class="flex items-center space-x-2">
+<button class="text-gray-400 hover:text-primary"><i class="far fa-edit"></i></button>
+<button class="text-gray-400 hover:text-red-500"><i class="far fa-trash-alt"></i></button>
+</div>
+</div>
+<h3 class="text-base font-medium mb-2">文案创作助手</h3>
+<p class="text-sm text-gray-500 mb-4 line-clamp-2">提供多种文案创作模板，包括营销文案、社媒文案、产品文案等</p>
+<div class="flex items-center justify-between text-xs text-gray-500">
+<span>更新时间：2024-01-18</span>
+<span>使用次数：2,156</span>
+</div>
+</div>
+<!-- 卡片4 -->
+<div class="bg-white p-4 rounded-lg border border-gray-200 hover:border-primary cursor-pointer">
+<div class="flex items-center justify-between mb-3">
+<span class="px-2 py-1 text-xs text-orange-600 bg-orange-50 rounded">翻译型</span>
+<div class="flex items-center space-x-2">
+<button class="text-gray-400 hover:text-primary"><i class="far fa-edit"></i></button>
+<button class="text-gray-400 hover:text-red-500"><i class="far fa-trash-alt"></i></button>
+</div>
+</div>
+<h3 class="text-base font-medium mb-2">多语言翻译助手</h3>
+<p class="text-sm text-gray-500 mb-4 line-clamp-2">支持多种语言互译，并能根据场景调整翻译风格</p>
+<div class="flex items-center justify-between text-xs text-gray-500">
+<span>更新时间：2024-01-17</span>
+<span>使用次数：1,589</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 表格视图 -->
+<div class="table-view hidden">
+<table class="w-full bg-white rounded-lg">
+<thead class="bg-gray-50">
+<tr>
+<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">名称</th>
+<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分类</th>
+<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">更新时间</th>
+<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">使用次数</th>
+<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+</tr>
+</thead>
+<tbody class="bg-white divide-y divide-gray-200">
+<tr class="hover:bg-gray-50">
+<td class="px-4 py-4">
+<div class="flex items-center">
+<img src="https://ai-public.mastergo.com/ai/img_res/19bc1299bf890c7b8dd731cee07e4e37.jpg" class="w-10 h-10 rounded-lg mr-3">
+<div>
+<div class="text-sm font-medium">客服对话助手</div>
+<div class="text-xs text-gray-500">专业的客服对话模板，包含问候语、常见问题解答、情绪安抚等场景</div>
+</div>
+</div>
+</td>
+<td class="px-4 py-4">
+<span class="px-2 py-1 text-xs text-primary bg-blue-50 rounded">对话型</span>
+</td>
+<td class="px-4 py-4 text-sm text-gray-500">2024-01-20</td>
+<td class="px-4 py-4 text-sm text-gray-500">1,234</td>
+<td class="px-4 py-4">
+<div class="flex gap-2">
+<button class="text-gray-400 hover:text-primary"><i class="far fa-edit"></i></button>
+<button class="text-gray-400 hover:text-red-500"><i class="far fa-trash-alt"></i></button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-gray-50">
+<td class="px-4 py-4">
+<div class="flex items-center">
+<img src="https://ai-public.mastergo.com/ai/img_res/6cf31f108bb95ca9bfd72300ef10cd61.jpg" class="w-10 h-10 rounded-lg mr-3">
+<div>
+<div class="text-sm font-medium">数据分析助手</div>
+<div class="text-xs text-gray-500">提供数据分析思路，包括数据清洗、统计分析、可视化建议等</div>
+</div>
+</div>
+</td>
+<td class="px-4 py-4">
+<span class="px-2 py-1 text-xs text-green-600 bg-green-50 rounded">分析型</span>
+</td>
+<td class="px-4 py-4 text-sm text-gray-500">2024-01-19</td>
+<td class="px-4 py-4 text-sm text-gray-500">856</td>
+<td class="px-4 py-4">
+<div class="flex gap-2">
+<button class="text-gray-400 hover:text-primary"><i class="far fa-edit"></i></button>
+<button class="text-gray-400 hover:text-red-500"><i class="far fa-trash-alt"></i></button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-gray-50">
+<td class="px-4 py-4">
+<div class="flex items-center">
+<img src="https://ai-public.mastergo.com/ai/img_res/3e38b7fac90c72fa11411a1f1d6183ba.jpg" class="w-10 h-10 rounded-lg mr-3">
+<div>
+<div class="text-sm font-medium">文案创作助手</div>
+<div class="text-xs text-gray-500">提供多种文案创作模板，包括营销文案、社媒文案、产品文案等</div>
+</div>
+</div>
+</td>
+<td class="px-4 py-4">
+<span class="px-2 py-1 text-xs text-purple-600 bg-purple-50 rounded">创作型</span>
+</td>
+<td class="px-4 py-4 text-sm text-gray-500">2024-01-18</td>
+<td class="px-4 py-4 text-sm text-gray-500">2,156</td>
+<td class="px-4 py-4">
+<div class="flex gap-2">
+<button class="text-gray-400 hover:text-primary"><i class="far fa-edit"></i></button>
+<button class="text-gray-400 hover:text-red-500"><i class="far fa-trash-alt"></i></button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-gray-50">
+<td class="px-4 py-4">
+<div class="flex items-center">
+<img src="https://ai-public.mastergo.com/ai/img_res/7489516f30cc9bf5cae893f66709aa90.jpg" class="w-10 h-10 rounded-lg mr-3">
+<div>
+<div class="text-sm font-medium">多语言翻译助手</div>
+<div class="text-xs text-gray-500">支持多种语言互译，并能根据场景调整翻译风格</div>
+</div>
+</div>
+</td>
+<td class="px-4 py-4">
+<span class="px-2 py-1 text-xs text-orange-600 bg-orange-50 rounded">翻译型</span>
+</td>
+<td class="px-4 py-4 text-sm text-gray-500">2024-01-17</td>
+<td class="px-4 py-4 text-sm text-gray-500">1,589</td>
+<td class="px-4 py-4">
+<div class="flex gap-2">
+<button class="text-gray-400 hover:text-primary"><i class="far fa-edit"></i></button>
+<button class="text-gray-400 hover:text-red-500"><i class="far fa-trash-alt"></i></button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 新建助理弹窗 -->
+<div id="createAssistantModal" class="modal fixed inset-0 z-50 items-center justify-center">
+<div class="bg-white rounded-lg w-[800px] m-4">
+<div class="flex items-center justify-between p-4 border-b">
+<h3 class="text-lg font-medium">新建Prompt模版</h3>
+<button onclick="hideAssistantModal()" class="text-gray-400 hover:text-gray-500">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="p-6">
+<!-- Tab切换按钮 -->
+<div class="flex border-b mb-6">
+<button class="px-4 py-2 text-primary border-b-2 border-primary">基础设置</button>
+</div>
+<!-- 基础设置 -->
+<div class="tab-content">
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">模版名称</label>
+<input type="text" class="w-full h-[32px] px-3 border border-gray-300 rounded-button focus:border-primary focus:outline-none" placeholder="请输入模版名称">
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">模版描述</label>
+<textarea class="w-full h-[60px] px-3 py-2 border border-gray-300 rounded-button focus:border-primary focus:outline-none resize-none" placeholder="请输入模版描述"></textarea>
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">模版标签</label>
+<div class="relative">
+<div class="flex flex-wrap gap-2 p-2 min-h-[32px] border border-gray-300 rounded-button">
+<div id="selectedTags" class="flex flex-wrap gap-2">
+<div class="flex items-center gap-1 px-2 py-1 bg-blue-100 text-primary rounded-full text-sm">
+对话型
+<button class="hover:text-red-500" onclick="this.parentElement.remove()">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="flex items-center gap-1 px-2 py-1 bg-blue-100 text-primary rounded-full text-sm">
+客服
+<button class="hover:text-red-500" onclick="this.parentElement.remove()">
+<i class="fas fa-times"></i>
+</button>
+</div>
+</div>
+<input type="text" id="tagInput" class="flex-1 min-w-[100px] outline-none" placeholder="输入标签并回车">
+</div>
+<div id="tagSuggestions" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-button shadow-lg">
+<div class="p-2 hover:bg-gray-100 cursor-pointer" onclick="selectTag(this)">对话型</div>
+<div class="p-2 hover:bg-gray-100 cursor-pointer" onclick="selectTag(this)">分析型</div>
+<div class="p-2 hover:bg-gray-100 cursor-pointer" onclick="selectTag(this)">创作型</div>
+<div class="p-2 hover:bg-gray-100 cursor-pointer" onclick="selectTag(this)">翻译型</div>
+<div class="p-2 hover:bg-gray-100 cursor-pointer" onclick="selectTag(this)">客服</div>
+<div class="p-2 hover:bg-gray-100 cursor-pointer" onclick="selectTag(this)">数据分析</div>
+<div class="p-2 hover:bg-gray-100 cursor-pointer" onclick="selectTag(this)">营销</div>
+<div class="p-2 hover:bg-gray-100 cursor-pointer" onclick="selectTag(this)">技术支持</div>
+</div>
+</div>
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">场景类型</label>
+<div class="flex gap-4">
+<label class="flex items-center">
+<input type="radio" name="sceneType" value="text" class="w-4 h-4 text-primary">
+<span class="ml-2">文生文</span>
+</label>
+<label class="flex items-center">
+<input type="radio" name="sceneType" value="image" class="w-4 h-4 text-primary">
+<span class="ml-2">文生图</span>
+</label>
+</div>
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">变量识别符</label>
+<div class="flex gap-2">
+<input type="text" value="{{" class="w-16 h-[32px] px-2 border border-gray-300 rounded-button focus:border-primary focus:outline-none text-center" placeholder="起始符">
+<input type="text" value="}}" class="w-16 h-[32px] px-2 border border-gray-300 rounded-button focus:border-primary focus:outline-none text-center" placeholder="结束符">
+</div>
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">Prompt</label>
+<textarea class="w-full h-[100px] px-3 py-2 border border-gray-300 rounded-button focus:border-primary focus:outline-none resize-none"
+placeholder="请输入Prompt内容"></textarea>
+</div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+const tagInput = document.getElementById('tagInput');
+const selectedTags = document.getElementById('selectedTags');
+const tagSuggestions = document.getElementById('tagSuggestions');
+const tagInput = document.getElementById('tagInput');
+const selectedTags = document.getElementById('selectedTags');
+const tagSuggestions = document.getElementById('tagSuggestions');
+tagInput.addEventListener('focus', function() {
+tagSuggestions.classList.remove('hidden');
+});
+document.addEventListener('click', function(e) {
+if (!e.target.closest('.relative')) {
+tagSuggestions.classList.add('hidden');
+}
+});
+tagInput.addEventListener('keydown', function(e) {
+if (e.key === 'Enter' && this.value.trim()) {
+e.preventDefault();
+addTag(this.value.trim());
+this.value = '';
+}
+});
+tagInput.addEventListener('input', function() {
+const value = this.value.toLowerCase();
+const suggestions = tagSuggestions.children;
+for (let suggestion of suggestions) {
+const text = suggestion.textContent.toLowerCase();
+if (text.includes(value)) {
+suggestion.style.display = 'block';
+} else {
+suggestion.style.display = 'none';
+}
+}
+});
+function selectTag(element) {
+addTag(element.textContent);
+tagInput.value = '';
+tagSuggestions.classList.add('hidden');
+}
+function addTag(tagText) {
+if ([...selectedTags.children].some(tag => tag.textContent.trim() === tagText.trim())) {
+return;
+}
+const tag = document.createElement('div');
+tag.className = 'flex items-center gap-1 px-2 py-1 bg-blue-100 text-primary rounded-full text-sm';
+tag.innerHTML = `
+${tagText}
+<button class="hover:text-red-500" onclick="this.parentElement.remove()">
+<i class="fas fa-times"></i>
+</button>
+`;
+selectedTags.appendChild(tag);
+}
+});
+</script>
+</div>
+<div class="flex justify-end gap-2 p-5">
+<button onclick="hideAssistantModal()" class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">取消</button>
+<button class="px-4 h-[32px] bg-primary text-white rounded-button hover:bg-secondary whitespace-nowrap">确定</button>
+</div>
+</div>
+</div>
+</div>
+<style>
+#sidebar.collapsed {
+width: 64px;
+}
+#sidebar.collapsed .sidebar-item span,
+#sidebar.collapsed .text-xl {
+display: none;
+}
+#sidebar.collapsed .sidebar-item {
+justify-content: center;
+padding: 12px;
+}
+#sidebar.collapsed .sidebar-item i {
+margin-right: 0;
+}
+#sidebar.collapsed .border-t {
+display: none;
+}
+</style>
+<script>
+function toggleSidebar() {
+const sidebar = document.getElementById('sidebar');
+sidebar.classList.toggle('collapsed');
+}
+function showAssistantModal() {
+document.getElementById('createAssistantModal').classList.add('show');
+}
+function hideAssistantModal() {
+document.getElementById('createAssistantModal').classList.remove('show');
+}
+function switchView(type) {
+const gridView = document.querySelector('.grid-view');
+const tableView = document.querySelector('.table-view');
+const gridButton = document.querySelector('[onclick="switchView(\'grid\')"]');
+const tableButton = document.querySelector('[onclick="switchView(\'table\')"]');
+if (type === 'grid') {
+gridView.classList.remove('hidden');
+tableView.classList.add('hidden');
+gridButton.classList.add('text-primary');
+gridButton.classList.remove('text-gray-400');
+tableButton.classList.remove('text-primary');
+tableButton.classList.add('text-gray-400');
+} else {
+gridView.classList.add('hidden');
+tableView.classList.remove('hidden');
+gridButton.classList.remove('text-primary');
+gridButton.classList.add('text-gray-400');
+tableButton.classList.add('text-primary');
+tableButton.classList.remove('text-gray-400');
+}
+}
+document.addEventListener('click', function(e) {
+if (e.target.closest('.card')) {
+const messages = document.querySelector('.flex-1.bg-white');
+messages.scrollTop = messages.scrollHeight;
+}
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知识库管理系统</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+theme: {
+extend: {
+colors: {
+primary: '#1677FF',
+secondary: '#4096ff'
+},
+borderRadius: {
+'none': '0px',
+'sm': '2px',
+DEFAULT: '4px',
+'md': '8px',
+'lg': '12px',
+'xl': '16px',
+'2xl': '20px',
+'3xl': '24px',
+'full': '9999px',
+'button': '4px'
+}
+}
+}
+}
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+.sidebar-item {
+display: flex;
+align-items: center;
+padding: 12px 24px;
+color: #ffffff;
+opacity: 0.8;
+transition: all 0.3s;
+}
+.sidebar-item:hover {
+opacity: 1;
+background: rgba(255,255,255,0.1);
+}
+.sidebar-item.active {
+opacity: 1;
+background: rgba(255,255,255,0.1);
+}
+.sidebar-item i {
+width: 20px;
+height: 20px;
+display: flex;
+justify-content: center;
+align-items: center;
+margin-right: 8px;
+}
+.search-input {
+width: 100%;
+border: 1px solid #d9d9d9;
+transition: all 0.3s;
+}
+.search-input:focus {
+border-color: #1677FF;
+box-shadow: 0 0 0 2px rgba(22,119,255,0.2);
+}
+.card {
+transition: all 0.3s;
+}
+.card:hover {
+box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.modal {
+display: none;
+background: rgba(0,0,0,0.45);
+}
+.modal.show {
+display: flex;
+}
+</style>
+</head>
+<body class="bg-gray-100 min-h-screen h-screen">
+<div class="flex h-full">
+<!-- 左侧导航 -->
+<div class="w-[200px] bg-[#001529] flex-shrink-0 flex flex-col transition-all duration-300" id="sidebar">
+<div>
+<div class="h-[64px] flex items-center px-6">
+<span class="text-white text-xl font-bold">Weave RAG</span>
+<button onclick="toggleSidebar()" class="text-white hover:text-gray-300 ml-auto">
+<i class="fas fa-bars"></i>
+</button>
+</div>
+<div class="flex flex-col flex-1">
+<a href="#" class="sidebar-item active text-left">
+<i class="fas fa-database"></i>
+<span>知识库</span>
+</a>
+<a href="#" class="sidebar-item text-left">
+<i class="fas fa-comments"></i>
+<span>聊天</span>
+</a>
+<a href="#" class="sidebar-item text-left">
+<i class="fas fa-code"></i>
+<span>Prompt管理</span>
+</a>
+</div>
+</div>
+<!-- 用户信息 -->
+<div class="border-t border-gray-700 p-4">
+<div class="flex items-center">
+<img src="https://ai-public.mastergo.com/ai/img_res/2e27f63843aa1dba31e76ff7f970e482.jpg" class="w-10 h-10 rounded-full object-cover mr-3">
+<div class="flex-1">
+<div class="text-white text-sm">Thomas Anderson</div>
+<div class="text-gray-400 text-xs">Lead Developer</div>
+</div>
+<button class="text-gray-400 hover:text-white">
+<i class="fas fa-sign-out-alt"></i>
+</button>
+</div>
+</div>
+</div>
+<!-- 新增问答弹窗 -->
+<div id="qaFormModal" class="modal fixed inset-0 z-50 items-center justify-center">
+<div class="bg-white rounded-lg w-[600px]">
+<div class="flex items-center justify-between p-4 border-b">
+<h3 class="text-lg font-medium">编辑问答</h3>
+<button onclick="hideQAFormModal()" class="text-gray-400 hover:text-gray-500">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="p-6">
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">问题</label>
+<input type="text" class="w-full h-[32px] px-3 border border-gray-300 rounded-button focus:border-primary focus:outline-none" placeholder="请输入问题">
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">答案</label>
+<textarea class="w-full h-[200px] px-3 py-2 border border-gray-300 rounded-button focus:border-primary focus:outline-none resize-none" placeholder="请输入答案"></textarea>
+</div>
+<div class="flex justify-end gap-2">
+<button onclick="hideQAFormModal()" class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">取消</button>
+<button class="px-4 h-[32px] bg-primary text-white rounded-button hover:bg-secondary whitespace-nowrap">确定</button>
+</div>
+</div>
+</div>
+</div>
+<!-- 右侧内容区 -->
+<div class="flex-1 p-6 overflow-auto flex flex-col">
+<!-- 面包屑 -->
+<div class="mb-4 flex items-center text-sm">
+<a href="#" class="text-gray-600 hover:text-primary">首页</a>
+<i class="fas fa-chevron-right mx-2 text-gray-400 text-xs"></i>
+<a href="#" class="text-gray-600 hover:text-primary">知识库</a>
+<i class="fas fa-chevron-right mx-2 text-gray-400 text-xs"></i>
+<span class="text-gray-400">问答知识库</span>
+</div>
+<!-- 知识库信息 -->
+<div class="bg-white rounded-lg border border-gray-200 mb-4 w-full">
+<div class="p-6">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center">
+<div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mr-3">
+<i class="fas fa-comments text-primary text-xl"></i>
+</div>
+<div>
+<h2 class="text-lg font-medium mb-1">问答知识库</h2>
+<p class="text-gray-500">用于存储和管理问答类型的知识文档</p>
+</div>
+</div>
+</div>
+<div class="flex items-center text-sm text-gray-500 flex-wrap">
+<span class="mr-6"><i class="far fa-calendar-alt mr-1"></i>创建时间：2023.10.15 10:30</span>
+<span class="mr-6"><i class="far fa-comments mr-1"></i>问答数量：28</span>
+<span><i class="fas fa-database mr-1"></i>向量模型：text2vec-base</span>
+</div>
+</div>
+</div>
+<!-- Tab导航 -->
+<div class="mb-4 flex items-center gap-2">
+<button class="px-4 h-[32px] bg-primary text-white rounded-button whitespace-nowrap">数据集</button>
+<button class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">检索测试</button>
+</div>
+<!-- Tab内容 -->
+<div class="bg-white rounded-lg border border-gray-200 flex-1 w-full">
+<!-- 搜索和操作栏 -->
+<div class="p-4 border-b border-gray-200 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<button onclick="toggleDropdown('batchActions')" class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap flex items-center">
+批量操作
+<i class="fas fa-chevron-down ml-2"></i>
+</button>
+<button class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap flex items-center">
+<i class="fas fa-download mr-2"></i>
+模版下载
+</button>
+<button class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap flex items-center">
+<i class="fas fa-file-import mr-2"></i>
+导入Excel
+</button>
+<div id="batchActions" class="hidden absolute left-0 top-[40px] w-[120px] bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+<button class="w-full px-4 h-[32px] flex items-center hover:bg-gray-50 text-gray-700">
+<i class="fas fa-check-circle mr-2 text-green-500"></i>启用
+</button>
+<button class="w-full px-4 h-[32px] text-left hover:bg-gray-50 text-gray-700">
+<i class="fas fa-times-circle mr-2 text-red-500"></i>禁用
+</button>
+<button class="w-full px-4 h-[32px] text-left hover:bg-gray-50 text-gray-700">
+<i class="fas fa-play mr-2 text-blue-500"></i>解析
+</button>
+<button class="w-full px-4 h-[32px] text-left hover:bg-gray-50 text-gray-700">
+<i class="fas fa-trash-alt mr-2 text-red-500"></i>删除
+</button>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="relative flex-1 w-[300px]">
+<input type="text" class="w-full h-[32px] pl-8 pr-3 text-sm border border-gray-300 rounded-button focus:border-primary focus:outline-none" placeholder="搜索文件">
+<i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+</div>
+<button onclick="showQAFormModal()" class="px-4 h-[32px] bg-primary text-white rounded-button hover:bg-secondary whitespace-nowrap">
+<i class="fas fa-plus mr-1"></i>新增问答
+</button>
+</div>
+</div>
+<!-- 表头 -->
+<div class="flex items-center px-6 h-[48px] border-b border-gray-200 bg-gray-50 text-sm">
+<div class="w-[48px] flex items-center justify-center">
+<input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" onclick="checkItemSelected()">
+</div>
+<div class="w-[300px] text-gray-600 font-medium">问题</div>
+<div class="w-[300px] text-gray-600 font-medium">答案</div>
+<div class="w-[140px] text-gray-600 font-medium">创建时间</div>
+<div class="w-[140px] text-gray-600 font-medium">解析状态</div>
+<div class="w-[80px] text-gray-600 font-medium text-center">启用</div>
+<div class="w-[180px] text-gray-600 font-medium text-center flex items-center justify-center">操作</div>
+</div>
+<script>
+function checkSelectAll(checkbox) {
+const checkboxes = document.querySelectorAll('input[type="checkbox"]:not(:first-child)');
+checkboxes.forEach(box => box.checked = checkbox.checked);
+}
+function checkItemSelected() {
+const allChecked = document.querySelectorAll('input[type="checkbox"]:checked:not(:first-child)').length;
+const selectAllCheckbox = document.querySelector('input[type="checkbox"]:first-child');
+const totalCheckboxes = document.querySelectorAll('input[type="checkbox"]:not(:first-child)').length;
+selectAllCheckbox.checked = allChecked === totalCheckboxes && totalCheckboxes > 0;
+selectAllCheckbox.indeterminate = allChecked > 0 && allChecked < totalCheckboxes;
+}
+</script>
+<!-- 文件列表 -->
+<div class="p-4 flex-1 space-y-2">
+<!-- 为了充满列表区域,增加更多文件项 -->
+<div class="px-2 rounded-lg hover:bg-gray-50">
+<!-- 重复相似的文件项结构 16次,每个都稍微变化内容,确保填充满整个列表区域 -->
+<div class="flex items-center min-h-[48px] py-2">
+<div class="w-[48px] flex items-center justify-center">
+<input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" onclick="checkItemSelected()">
+</div>
+<div class="w-[300px] flex items-center">
+<i class="far fa-comments text-gray-400 mr-2"></i>
+<span class="text-gray-900">如何开始使用这个系统?</span>
+</div>
+<div class="w-[300px] relative group flex items-center">
+<div class="text-gray-600 line-clamp-2">首先需要在系统设置中完成基础配置，包括账号权限、数据源连接等。然后可以开始创建知识库，上传文档数据。系统会自动进行文档解析和向量化处理。完成后即可开始使用检索和问答功能。</div>
+<div class="hidden group-hover:block absolute left-0 top-0 bg-white border border-gray-200 rounded-lg p-2 shadow-lg z-10 w-[300px]">首先需要在系统设置中完成基础配置，包括账号权限、数据源连接等。然后可以开始创建知识库，上传文档数据。系统会自动进行文档解析和向量化处理。完成后即可开始使用检索和问答功能。</div>
+</div>
+<div class="w-[140px] text-gray-500 text-sm">2023.10.18 15:30</div>
+<div class="w-[140px]">
+<span class="inline-flex items-center px-2 h-[24px] bg-blue-50 text-blue-600 text-sm rounded">已解析</span>
+</div>
+<div class="w-[80px] px-2">
+<div class="relative inline-block select-none">
+<label class="relative inline-flex items-center cursor-pointer">
+<input type="checkbox" checked class="sr-only peer">
+<div class="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<div class="w-[180px] flex items-center gap-2 whitespace-nowrap px-2 justify-center">
+<button class="text-primary hover:text-secondary" title="重新解析"><i class="fas fa-sync"></i></button>
+<button onclick="showQAFormModal('如何开始使用这个系统?', '首先需要在系统设置中完成基础配置，包括账号权限、数据源连接等。然后可以开始创建知识库，上传文档数据。系统会自动进行文档解析和向量化处理。完成后即可开始使用检索和问答功能。')" class="text-primary hover:text-secondary"><i class="fas fa-edit"></i></button>
+<button class="text-red-500 hover:text-red-600"><i class="fas fa-trash-alt"></i></button>
+</div>
+</div>
+</div>
+<div class="px-2 rounded-lg hover:bg-gray-50">
+<div class="flex items-center min-h-[48px] py-2">
+<div class="w-[48px] flex items-center justify-center">
+<input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" onclick="checkItemSelected()">
+</div>
+<div class="w-[300px] flex items-center">
+<i class="far fa-comments text-gray-400 mr-2"></i>
+<span class="text-gray-900">系统支持哪些文件格式?</span>
+</div>
+<div class="w-[300px] relative group flex items-center">
+<div class="text-gray-600 line-clamp-2">系统支持多种常见文档格式，包括：PDF、Word (.doc/.docx)、Excel (.xls/.xlsx)、PowerPoint (.ppt/.pptx)、Markdown (.md)、纯文本文件 (.txt)等。同时也支持HTML和常见的代码文件格式。</div>
+<div class="hidden group-hover:block absolute left-0 top-0 bg-white border border-gray-200 rounded-lg p-2 shadow-lg z-10 w-[300px]">系统支持多种常见文档格式，包括：PDF、Word (.doc/.docx)、Excel (.xls/.xlsx)、PowerPoint (.ppt/.pptx)、Markdown (.md)、纯文本文件 (.txt)等。同时也支持HTML和常见的代码文件格式。</div>
+</div>
+<div class="w-[140px] text-gray-500 text-sm">2023.10.18 14:20</div>
+<div class="w-[140px]">
+<span class="inline-flex items-center px-2 h-[24px] bg-yellow-50 text-yellow-600 text-sm rounded">未解析</span>
+</div>
+<div class="w-[80px] px-2">
+<div class="relative inline-block select-none">
+<label class="relative inline-flex items-center cursor-pointer">
+<input type="checkbox" class="sr-only peer">
+<div class="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<div class="w-[180px] flex items-center gap-2 whitespace-nowrap px-2 justify-center">
+<button class="text-primary hover:text-secondary" title="开始解析"><i class="fas fa-play"></i></button>
+<button onclick="showQAFormModal('如何开始使用这个系统?', '首先需要在系统设置中完成基础配置，包括账号权限、数据源连接等。然后可以开始创建知识库，上传文档数据。系统会自动进行文档解析和向量化处理。完成后即可开始使用检索和问答功能。')" class="text-primary hover:text-secondary"><i class="fas fa-edit"></i></button>
+<button class="text-red-500 hover:text-red-600"><i class="fas fa-trash-alt"></i></button>
+</div>
+</div>
+</div>
+<div class="px-2 rounded-lg hover:bg-gray-50">
+<div class="flex items-center min-h-[48px] py-2">
+<div class="w-[48px] flex items-center justify-center">
+<input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" onclick="checkItemSelected()">
+</div>
+<div class="w-[300px] flex items-center">
+<i class="far fa-comments text-gray-400 mr-2"></i>
+<span class="text-gray-900">如何提高检索的准确率?</span>
+</div>
+<div class="w-[300px] relative group flex items-center">
+<div class="text-gray-600 line-clamp-2">提高检索准确率可以从以下几个方面入手：1. 选择更适合的向量模型；2. 优化文档切片策略，避免过长或过短；3. 调整相似度阈值；4. 合理设置关键词权重；5. 优化问题描述，使用更精准的关键词。同时要注意定期更新和维护知识库数据。</div>
+<div class="hidden group-hover:block absolute left-0 top-0 bg-white border border-gray-200 rounded-lg p-2 shadow-lg z-10 w-[300px]">提高检索准确率可以从以下几个方面入手：1. 选择更适合的向量模型；2. 优化文档切片策略，避免过长或过短；3. 调整相似度阈值；4. 合理设置关键词权重；5. 优化问题描述，使用更精准的关键词。同时要注意定期更新和维护知识库数据。</div>
+</div>
+<div class="w-[140px] text-gray-500 text-sm">2023.10.18 11:45</div>
+<div class="w-[140px]">
+<span class="inline-flex items-center px-2 h-[24px] bg-red-50 text-red-600 text-sm rounded">解析失败</span>
+</div>
+<div class="w-[80px] px-2">
+<div class="relative inline-block select-none">
+<label class="relative inline-flex items-center cursor-pointer">
+<input type="checkbox" class="sr-only peer">
+<div class="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<div class="w-[180px] flex items-center gap-2 whitespace-nowrap px-2 justify-center">
+<button class="text-primary hover:text-secondary" title="重新解析"><i class="fas fa-sync"></i></button>
+<button onclick="showQAFormModal('如何开始使用这个系统?', '首先需要在系统设置中完成基础配置，包括账号权限、数据源连接等。然后可以开始创建知识库，上传文档数据。系统会自动进行文档解析和向量化处理。完成后即可开始使用检索和问答功能。')" class="text-primary hover:text-secondary"><i class="fas fa-edit"></i></button>
+<button class="text-red-500 hover:text-red-600"><i class="fas fa-trash-alt"></i></button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 分页 -->
+<div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 mt-auto">
+<div class="text-sm text-gray-500">
+共 <span class="text-primary">28</span> 条数据
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center space-x-2">
+<button class="px-3 h-[32px] bg-white border border-[#d9d9d9] text-gray-400 rounded-button whitespace-nowrap" disabled>
+上一页
+</button>
+<button class="min-w-[32px] h-[32px] bg-primary text-white rounded-button">1</button>
+<button class="min-w-[32px] h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary">2</button>
+<button class="min-w-[32px] h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary">3</button>
+<button class="px-3 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">
+下一页
+</button>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-sm text-gray-500">跳至</span>
+<input type="number" min="1" max="3" class="w-[50px] h-[32px] px-2 text-center border border-gray-300 rounded-button focus:border-primary focus:outline-none" value="1">
+<span class="text-sm text-gray-500">页</span>
+<button class="px-3 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">
+跳转
+</button>
+</div>
+</div>
+</div>
+<!-- 批量操作按钮 -->
+</div>
+</div>
+<!-- 删除确认弹窗 -->
+<div id="deleteModal" class="modal fixed inset-0 z-50 items-center justify-center">
+<div class="bg-white rounded-lg w-[400px]">
+<div class="flex items-center justify-between p-4 border-b">
+<h3 class="text-lg font-medium">删除知识库</h3>
+<button onclick="hideDeleteModal()" class="text-gray-400 hover:text-gray-500">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="p-6">
+<p class="text-gray-600 mb-6">确定要删除该知识库吗？删除后数据将无法恢复。</p>
+<div class="flex justify-end gap-2">
+<button onclick="hideDeleteModal()" class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">取消</button>
+<button class="px-4 h-[32px] bg-red-500 text-white rounded-button hover:bg-red-600 whitespace-nowrap">确定删除</button>
+</div>
+</div>
+</div>
+</div>
+<!-- 新建通用知识库弹窗 -->
+<div id="createModal" class="modal fixed inset-0 z-50 items-center justify-center">
+<div class="bg-white rounded-lg w-[600px]">
+<div class="flex items-center justify-between p-4 border-b">
+<h3 class="text-lg font-medium">新建通用知识库</h3>
+<button onclick="hideModal()" class="text-gray-400 hover:text-gray-500">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="p-6">
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">知识库名称</label>
+<input type="text" class="w-full h-[32px] px-3 border border-gray-300 rounded-button focus:border-primary focus:outline-none" placeholder="请输入知识库名称">
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">知识库描述</label>
+<textarea class="w-full h-[80px] px-3 py-2 border border-gray-300 rounded-button focus:border-primary focus:outline-none resize-none" placeholder="请输入知识库描述"></textarea>
+</div>
+<div id="vectorForms">
+<div class="vector-form mb-4 p-4 bg-gray-50 rounded-lg">
+<div class="flex items-center justify-between mb-2">
+<span class="text-sm font-medium text-gray-700">向量组 #1</span>
+<button onclick="removeVectorForm(this)" class="text-gray-400 hover:text-red-500">
+<i class="fas fa-trash-alt"></i>
+</button>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">向量模型</label>
+<div class="relative">
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none">
+<option value="">请选择向量模型</option>
+<option value="text2vec-base">text2vec-base</option>
+<option value="text2vec-large">text2vec-large</option>
+<option value="text2vec-multilingual">text2vec-multilingual</option>
+</select>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">切片策略</label>
+<div class="relative">
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none">
+<option value="">请选择切片策略</option>
+<option value="paragraph">段落切片</option>
+<option value="sentence">句子切片</option>
+<option value="markdown">Markdown切片</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+</div>
+<button onclick="addVectorForm()" class="mb-6 px-4 h-[32px] bg-white border border-dashed border-gray-300 text-primary rounded-button hover:border-primary hover:text-primary whitespace-nowrap w-full">
+<i class="fas fa-plus mr-1"></i>添加向量组
+</button>
+<div class="flex justify-end gap-2">
+<button onclick="hideModal()" class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">取消</button>
+<button class="px-4 h-[32px] bg-primary text-white rounded-button hover:bg-secondary whitespace-nowrap">确定</button>
+</div>
+</div>
+</div>
+</div>
+<style>
+#sidebar.collapsed {
+width: 64px;
+}
+#sidebar.collapsed .sidebar-item span,
+#sidebar.collapsed .text-xl {
+display: none;
+}
+#sidebar.collapsed .sidebar-item {
+justify-content: center;
+padding: 12px;
+}
+#sidebar.collapsed .sidebar-item i {
+margin-right: 0;
+}
+#sidebar.collapsed .border-t {
+display: none;
+}
+</style>
+<script>
+function toggleSidebar() {
+const sidebar = document.getElementById('sidebar');
+sidebar.classList.toggle('collapsed');
+}
+function toggleDropdown(id) {
+const dropdown = document.getElementById(id);
+const dropdowns = document.querySelectorAll('[id^="actionDropdown"], [id^="newKnowledge"]');
+dropdowns.forEach(d => {
+if(d.id !== id) d.classList.add('hidden');
+});
+if (id === 'batchActions') {
+const checkedBoxes = document.querySelectorAll('input[type="checkbox"]:checked:not(:first-child)');
+}
+dropdown.classList.toggle('hidden');
+}
+document.addEventListener('click', function(e) {
+const dropdowns = document.querySelectorAll('[id^="actionDropdown"], [id^="newKnowledge"]');
+dropdowns.forEach(dropdown => {
+if (!dropdown.contains(e.target) && !e.target.closest('button[onclick^="toggleDropdown"]')) {
+dropdown.classList.add('hidden');
+}
+});
+});
+function showModal() {
+document.getElementById('createModal').classList.add('show');
+}
+function hideModal() {
+document.getElementById('createModal').classList.remove('show');
+}
+let formCount = 1;
+function addVectorForm() {
+formCount++;
+const template = `
+<div class="vector-form mb-4 p-4 bg-gray-50 rounded-lg">
+<div class="flex items-center justify-between mb-2">
+<span class="text-sm font-medium text-gray-700">向量组 #${formCount}</span>
+<button onclick="removeVectorForm(this)" class="text-gray-400 hover:text-red-500">
+<i class="fas fa-trash-alt"></i>
+</button>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">向量模型</label>
+<div class="relative">
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none">
+<option value="">请选择向量模型</option>
+<option value="text2vec-base">text2vec-base</option>
+<option value="text2vec-large">text2vec-large</option>
+<option value="text2vec-multilingual">text2vec-multilingual</option>
+</select>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">切片策略</label>
+<div class="relative">
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none">
+<option value="">请选择切片策略</option>
+<option value="paragraph">段落切片</option>
+<option value="sentence">句子切片</option>
+<option value="markdown">Markdown切片</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+`;
+document.getElementById('vectorForms').insertAdjacentHTML('beforeend', template);
+}
+function removeVectorForm(btn) {
+if(document.querySelectorAll('.vector-form').length > 1) {
+btn.closest('.vector-form').remove();
+}
+}
+</script>
+<!-- 新建文件夹弹窗 -->
+<div id="createFolderModal" class="modal fixed inset-0 z-50 items-center justify-center">
+<div class="bg-white rounded-lg w-[600px]">
+<div class="flex items-center justify-between p-4 border-b">
+<h3 class="text-lg font-medium">新建文件夹</h3>
+<button onclick="hideFolderModal()" class="text-gray-400 hover:text-gray-500">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="p-6">
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">文件夹名称</label>
+<input type="text" class="w-full h-[32px] px-3 border border-gray-300 rounded-button focus:border-primary focus:outline-none" placeholder="请输入文件夹名称">
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">文件夹描述</label>
+<textarea class="w-full h-[80px] px-3 py-2 border border-gray-300 rounded-button focus:border-primary focus:outline-none resize-none" placeholder="请输入文件夹描述"></textarea>
+</div>
+<div class="flex justify-end gap-2">
+<button onclick="hideFolderModal()" class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">取消</button>
+<button class="px-4 h-[32px] bg-primary text-white rounded-button hover:bg-secondary whitespace-nowrap">确定</button>
+</div>
+</div>
+</div>
+</div>
+<!-- 新建问答知识库弹窗 -->
+<div id="createQAModal" class="modal fixed inset-0 z-50 items-center justify-center">
+<div class="bg-white rounded-lg w-[600px]">
+<div class="flex items-center justify-between p-4 border-b">
+<h3 class="text-lg font-medium">新建问答知识库</h3>
+<button onclick="hideQAModal()" class="text-gray-400 hover:text-gray-500">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="p-6">
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">知识库名称</label>
+<input type="text" class="w-full h-[32px] px-3 border border-gray-300 rounded-button focus:border-primary focus:outline-none" placeholder="请输入知识库名称">
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">知识库描述</label>
+<textarea class="w-full h-[80px] px-3 py-2 border border-gray-300 rounded-button focus:border-primary focus:outline-none resize-none" placeholder="请输入知识库描述"></textarea>
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">向量模型</label>
+<div class="relative">
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none appearance-none">
+<option value="">请选择向量模型</option>
+<option value="text2vec-base">text2vec-base</option>
+<option value="text2vec-large">text2vec-large</option>
+<option value="text2vec-multilingual">text2vec-multilingual</option>
+</select>
+<i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+</div>
+</div>
+<div class="flex justify-end gap-2">
+<button onclick="hideQAModal()" class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">取消</button>
+<button class="px-4 h-[32px] bg-primary text-white rounded-button hover:bg-secondary whitespace-nowrap">确定</button>
+</div>
+</div>
+</div>
+</div>
+<script>
+function showDeleteModal() {
+document.getElementById('deleteModal').classList.add('show');
+}
+function hideDeleteModal() {
+document.getElementById('deleteModal').classList.remove('show');
+}
+function showQAModal() {
+document.getElementById('createQAModal').classList.add('show');
+}
+function hideQAModal() {
+document.getElementById('createQAModal').classList.remove('show');
+}
+function showFolderModal() {
+document.getElementById('createFolderModal').classList.add('show');
+}
+function hideFolderModal() {
+document.getElementById('createFolderModal').classList.remove('show');
+}
+function showQAFormModal(question = '', answer = '') {
+const modal = document.getElementById('qaFormModal');
+const questionInput = modal.querySelector('input[type="text"]');
+const answerTextarea = modal.querySelector('textarea');
+questionInput.value = question;
+answerTextarea.value = answer;
+modal.classList.add('show');
+}
+function hideQAFormModal() {
+document.getElementById('qaFormModal').classList.remove('show');
+}
+</script>
+<!-- 检索测试Tab内容 -->
+<div class="hidden bg-white rounded-lg border border-gray-200">
+<div class="flex h-full">
+<!-- 左侧表单 -->
+<div class="w-[600px] border-r border-gray-200 p-6">
+<div class="mb-6">
+<label class="block text-sm font-medium text-gray-700 mb-2">测试文本</label>
+<textarea class="w-full h-[200px] px-4 py-3 text-sm border border-gray-300 rounded-button focus:border-primary focus:outline-none resize-none" placeholder="请输入检索问题，点击检索按钮进行相似性匹配..."></textarea>
+</div>
+<div class="bg-gray-50 p-4 rounded-lg space-y-4 mb-6">
+<div>
+<label class="block text-sm text-gray-600 mb-1">相似度阈值</label>
+<div class="relative">
+<input type="number" min="0" max="1" step="0.1" value="0.7" class="w-full h-[32px] px-3 text-sm border border-gray-300 rounded-button focus:border-primary focus:outline-none">
+<div class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">0.0 ~ 1.0</div>
+</div>
+</div>
+<div>
+<label class="block text-sm text-gray-600 mb-1">关键字相似度权重</label>
+<div class="relative">
+<input type="number" min="0" max="1" step="0.1" value="0.3" class="w-full h-[32px] px-3 text-sm border border-gray-300 rounded-button focus:border-primary focus:outline-none">
+<div class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">0.0 ~ 1.0</div>
+</div>
+</div>
+<div>
+<label class="block text-sm text-gray-600 mb-1">向量模型</label>
+<div class="relative">
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none appearance-none">
+<option value="">text2vec-base</option>
+<option value="text2vec-large">text2vec-large</option>
+<option value="text2vec-multilingual">text2vec-multilingual</option>
+</select>
+<i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+</div>
+</div>
+</div>
+<button class="w-full h-[32px] bg-primary text-white rounded-button hover:bg-secondary whitespace-nowrap">
+<i class="fas fa-search mr-2"></i>开始检索
+</button>
+</div>
+<!-- 右侧结果 -->
+<div class="flex-1 p-6">
+<div class="border-b border-gray-200 pb-3 mb-4">
+<h3 class="text-base font-medium">检索结果</h3>
+</div>
+<div class="space-y-4">
+<div class="p-4 bg-gray-50 rounded-lg border border-gray-100">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-4">
+<span class="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded">向量相似度：0.92</span>
+<span class="px-2 py-1 bg-green-50 text-green-600 text-xs rounded">关键词相似度：0.85</span>
+<span class="text-gray-400 text-sm">来自：产品介绍文档.pdf</span>
+</div>
+<button class="text-primary hover:text-secondary">
+<i class="fas fa-arrow-up-right-from-square text-sm"></i>
+</button>
+</div>
+<p class="text-gray-700">部署流程是一个至关重要的环节，需要仔细规划每一个步骤。首先，我们需要准备好所有必要的依赖项和配置文件。接着，需要确保数据库连接正确配置，并完成数据迁移工作。最后，进行全面的测试，确保系统正常运行。我们建议在正式部署前，先在测试环境中进行充分验证。</p>
+</div>
+<div class="p-4 bg-gray-50 rounded-lg border border-gray-100">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-4">
+<span class="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded">向量相似度：0.85</span>
+<span class="px-2 py-1 bg-green-50 text-green-600 text-xs rounded">关键词相似度：0.78</span>
+<span class="text-gray-400 text-sm">来自：技术规划说明.docx</span>
+</div>
+<button class="text-primary hover:text-secondary">
+<i class="fas fa-arrow-up-right-from-square text-sm"></i>
+</button>
+</div>
+<p class="text-gray-700">微服务架构的部署需要特别注意服务之间的依赖关系。推荐使用容器化技术，如 Docker 和 Kubernetes，来管理服务的部署和扩展。每个服务都应该有独立的配置管理和日志收集机制。同时，要建立完善的监控体系，及时发现和解决潜在问题。</p>
+</div>
+<div class="p-4 bg-gray-50 rounded-lg border border-gray-100">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-4">
+<span class="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded">向量相似度：0.75</span>
+<span class="px-2 py-1 bg-green-50 text-green-600 text-xs rounded">关键词相似度：0.82</span>
+<span class="text-gray-400 text-sm">来自：部署配置文档.md</span>
+</div>
+<button class="text-primary hover:text-secondary">
+<i class="fas fa-arrow-up-right-from-square text-sm"></i>
+</button>
+</div>
+<p class="text-gray-700">在部署过程中，配置管理是重中之重。所有的配置参数都应该统一管理，可以使用配置中心来实现。同时要注意敏感信息的加密保护，建议使用专门的密钥管理服务。配置变更时要有完整的审计日志，确保可追溯性。</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+// 添加tab切换功能
+document.addEventListener('DOMContentLoaded', function() {
+const tabButtons = document.querySelectorAll('.mb-4.flex.items-center.gap-2 button');
+const tabContents = [
+document.querySelector('.bg-white.rounded-lg.border.border-gray-200.flex-1'),
+document.querySelector('.hidden.bg-white.rounded-lg.border.border-gray-200.p-6')
+];
+tabButtons.forEach((button, index) => {
+button.addEventListener('click', () => {
+// 更新按钮样式
+tabButtons.forEach(btn => {
+btn.className = 'px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap';
+});
+button.className = 'px-4 h-[32px] bg-primary text-white rounded-button whitespace-nowrap';
+// 显示对应内容
+tabContents.forEach((content, i) => {
+if(i === index) {
+content.classList.remove('hidden');
+} else {
+content.classList.add('hidden');
+}
+});
+});
+});
+});
+</script>
+</body>
+</html>

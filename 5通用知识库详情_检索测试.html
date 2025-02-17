@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知识库管理系统</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+theme: {
+extend: {
+colors: {
+primary: '#1677FF',
+secondary: '#4096ff'
+},
+borderRadius: {
+'none': '0px',
+'sm': '2px',
+DEFAULT: '4px',
+'md': '8px',
+'lg': '12px',
+'xl': '16px',
+'2xl': '20px',
+'3xl': '24px',
+'full': '9999px',
+'button': '4px'
+}
+}
+}
+}
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+.sidebar-item {
+display: flex;
+align-items: center;
+padding: 12px 24px;
+color: #ffffff;
+opacity: 0.8;
+transition: all 0.3s;
+}
+.sidebar-item:hover {
+opacity: 1;
+background: rgba(255,255,255,0.1);
+}
+.sidebar-item.active {
+opacity: 1;
+background: rgba(255,255,255,0.1);
+}
+.sidebar-item i {
+width: 20px;
+height: 20px;
+display: flex;
+justify-content: center;
+align-items: center;
+margin-right: 8px;
+}
+.search-input {
+width: 100%;
+border: 1px solid #d9d9d9;
+transition: all 0.3s;
+}
+.search-input:focus {
+border-color: #1677FF;
+box-shadow: 0 0 0 2px rgba(22,119,255,0.2);
+}
+.card {
+transition: all 0.3s;
+}
+.card:hover {
+box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.modal {
+display: none;
+background: rgba(0,0,0,0.45);
+}
+.modal.show {
+display: flex;
+}
+</style>
+</head>
+<body class="bg-gray-100 min-h-[1024px]">
+<div class="flex w-[1440px] h-full mx-auto">
+<!-- 左侧导航 -->
+<div class="w-[200px] bg-[#001529] h-screen flex-shrink-0 flex flex-col justify-between transition-all duration-300 fixed" id="sidebar">
+<div>
+<div class="h-[64px] flex items-center px-6 justify-between">
+<span class="text-white text-xl font-bold">Weave RAG</span>
+<button onclick="toggleSidebar()" class="text-white hover:text-gray-300">
+<i class="fas fa-bars"></i>
+</button>
+</div>
+<div class="flex flex-col flex-1">
+<a href="#" class="sidebar-item active">
+<i class="fas fa-database"></i>
+<span>知识库</span>
+</a>
+<a href="#" class="sidebar-item">
+<i class="fas fa-comments"></i>
+<span>聊天</span>
+</a>
+<a href="#" class="sidebar-item">
+<i class="fas fa-code"></i>
+<span>Prompt管理</span>
+</a>
+</div>
+</div>
+<!-- 用户信息 -->
+<div class="border-t border-gray-700 p-4">
+<div class="flex items-center">
+<img src="https://ai-public.mastergo.com/ai/img_res/2e27f63843aa1dba31e76ff7f970e482.jpg" class="w-10 h-10 rounded-full object-cover mr-3">
+<div class="flex-1">
+<div class="text-white text-sm">Thomas Anderson</div>
+<div class="text-gray-400 text-xs">Lead Developer</div>
+</div>
+<button class="text-gray-400 hover:text-white">
+<i class="fas fa-sign-out-alt"></i>
+</button>
+</div>
+</div>
+</div>
+<!-- 上传文件弹窗 -->
+<div id="uploadModal" class="modal fixed inset-0 z-50 items-center justify-center">
+<div class="bg-white rounded-lg w-[600px]">
+<div class="flex items-center justify-between p-4 border-b">
+<h3 class="text-lg font-medium">上传文件</h3>
+<button onclick="hideUploadModal()" class="text-gray-400 hover:text-gray-500">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="p-6">
+<div class="mb-6">
+<div class="w-full h-[200px] border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors" onclick="document.getElementById('fileInput').click()">
+<input type="file" id="fileInput" class="hidden" accept=".pdf,.doc,.docx,.wps,.ofd,.txt,.md,.markdown" multiple>
+<i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+<p class="text-gray-600 mb-1">点击或拖拽文件到这里上传</p>
+<p class="text-gray-400 text-sm">支持 PDF、DOC、WPS、OFD、TXT、Markdown 格式</p>
+</div>
+</div>
+<div id="fileList" class="space-y-2 max-h-[200px] overflow-auto"></div>
+<div class="flex justify-end gap-2">
+<button onclick="hideUploadModal()" class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">取消</button>
+<button class="px-4 h-[32px] bg-primary text-white rounded-button hover:bg-secondary whitespace-nowrap">确定上传</button>
+</div>
+</div>
+</div>
+</div>
+<!-- 右侧内容区 -->
+<div class="flex-1 p-6 ml-[200px]">
+<!-- 数据集Tab内容 -->
+<!-- 面包屑 -->
+<div class="mb-4 flex items-center text-sm">
+<a href="#" class="text-gray-600 hover:text-primary">首页</a>
+<i class="fas fa-chevron-right mx-2 text-gray-400 text-xs"></i>
+<a href="#" class="text-gray-600 hover:text-primary">知识库</a>
+<i class="fas fa-chevron-right mx-2 text-gray-400 text-xs"></i>
+<span class="text-gray-400">通用知识库</span>
+</div>
+<!-- 知识库信息 -->
+<div class="bg-white rounded-lg border border-gray-200 mb-4">
+<div class="p-6">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center">
+<div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mr-3">
+<i class="fas fa-database text-primary text-xl"></i>
+</div>
+<div>
+<h2 class="text-lg font-medium mb-1">通用知识库</h2>
+<p class="text-gray-500">用于存储和管理通用类型的知识文档</p>
+</div>
+</div>
+</div>
+<div class="flex items-center text-sm text-gray-500 flex-wrap">
+<span class="mr-6"><i class="far fa-calendar-alt mr-1"></i>创建时间：2023.10.15 10:30</span>
+<span class="mr-6"><i class="far fa-file mr-1"></i>文件数量：28</span>
+<span><i class="fas fa-database mr-1"></i>向量模型：text2vec-base (段落切片)、text2vec-large (句子切片)</span>
+</div>
+</div>
+</div>
+<!-- Tab导航 -->
+<div class="mb-4 flex items-center gap-2">
+<button class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">数据集</button>
+<button class="px-4 h-[32px] bg-primary text-white rounded-button whitespace-nowrap">检索测试</button>
+</div>
+<!-- 检索测试Tab内容 -->
+<div class="bg-white rounded-lg border border-gray-200 p-6">
+<div class="flex gap-6">
+<!-- 左侧表单区域 -->
+<div class="w-[400px] flex-shrink-0">
+<div class="space-y-4">
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">测试文本</label>
+<textarea class="w-full h-[160px] px-4 py-3 text-sm border border-gray-300 rounded-button focus:border-primary focus:outline-none resize-none" placeholder="请输入检索问题，点击检索按钮进行相似性匹配..."></textarea>
+</div>
+<div>
+<div class="flex gap-2">
+<button onclick="showSearchConfigModal()" class="flex-1 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">
+<i class="fas fa-brain mr-2"></i>语义检索
+</button>
+<button class="flex-1 h-[32px] bg-primary text-white rounded-button hover:bg-secondary whitespace-nowrap">
+<i class="fas fa-search mr-2"></i>开始检索
+</button>
+</div>
+</div>
+<!-- 知识库检索配置弹窗 -->
+<div id="searchConfigModal" class="modal fixed inset-0 z-50 items-center justify-center">
+<div class="bg-white rounded-lg w-[600px]">
+<div class="flex items-center justify-between p-4 border-b">
+<h3 class="text-lg font-medium">知识库检索配置</h3>
+<button onclick="hideSearchConfigModal()" class="text-gray-400 hover:text-gray-500">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="p-6">
+<!-- Tab导航 -->
+<div class="border-b mb-6">
+<div class="flex space-x-6">
+<button onclick="switchTab('search-mode')" class="text-primary border-b-2 border-primary pb-2 font-medium">搜索模式</button>
+<button onclick="switchTab('search-filter')" class="text-gray-500 pb-2 font-medium">搜索过滤</button>
+<button onclick="switchTab('question-opt')" class="text-gray-500 pb-2 font-medium">问题优化</button>
+</div>
+</div>
+<!-- Tab内容 -->
+<div id="search-mode" class="tab-content">
+<div class="space-y-4">
+<label class="block p-4 border border-gray-200 rounded-lg hover:border-primary cursor-pointer group">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<i class="fas fa-vector-square text-xl text-primary"></i>
+<span class="font-medium">语义检索</span>
+</div>
+<input type="radio" name="search-mode" value="semantic" class="w-4 h-4 text-primary" checked>
+</div>
+<p class="text-sm text-gray-500">使用向量进行文本相关性查询</p>
+</label>
+<label class="block p-4 border border-gray-200 rounded-lg hover:border-primary cursor-pointer group">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<i class="fas fa-shuffle text-xl text-primary"></i>
+<span class="font-medium">混合检索</span>
+</div>
+<input type="radio" name="search-mode" value="hybrid" class="w-4 h-4 text-primary">
+</div>
+<p class="text-sm text-gray-500">使用重排模型来进行二次排序，可增强综合排名</p>
+</label>
+<label class="block p-4 border border-gray-200 rounded-lg hover:border-primary cursor-pointer group mt-4">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<i class="fas fa-sort-amount-up text-xl text-primary"></i>
+<span class="font-medium">开启结果重排</span>
+</div>
+<input type="checkbox" name="rerank" class="w-4 h-4 text-primary rounded">
+</div>
+<p class="text-sm text-gray-500">使用重排模型来进行二次排序，可增强综合排名</p>
+</label>
+</div>
+</div>
+<div id="search-filter" class="tab-content hidden">
+<div class="space-y-6">
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-2">引用上限</label>
+<input type="range" min="1" max="20" value="10" class="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer">
+<div class="flex justify-between text-sm text-gray-500 mt-1">
+<span>1</span>
+<span>10</span>
+<span>20</span>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-2">相似度阈值</label>
+<input type="range" min="0" max="1" step="0.01" value="0.6" class="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer">
+<div class="flex justify-between text-sm text-gray-500 mt-1">
+<span>0</span>
+<span>0.6</span>
+<span>1</span>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-2">关键字相似度权重</label>
+<input type="range" min="0" max="1" step="0.01" value="0.5" class="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer">
+<div class="flex justify-between text-sm text-gray-500 mt-1">
+<span>0</span>
+<span>0.5</span>
+<span>1</span>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-2">Top N</label>
+<input type="range" min="1" max="20" value="3" class="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer">
+<div class="flex justify-between text-sm text-gray-500 mt-1">
+<span>1</span>
+<span>3</span>
+<span>20</span>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-2">解析策略</label>
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none">
+<option value="auto">自动</option>
+<option value="paragraph">段落</option>
+<option value="sentence">句子</option>
+</select>
+</div>
+</div>
+</div>
+<div id="question-opt" class="tab-content hidden">
+<div class="space-y-4">
+<label class="block p-4 border border-gray-200 rounded-lg hover:border-primary cursor-pointer group">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<i class="fas fa-magic text-xl text-primary"></i>
+<span class="font-medium">开启问题优化</span>
+</div>
+<input type="checkbox" class="w-4 h-4 text-primary rounded">
+</div>
+<p class="text-sm text-gray-500">开启问题优化功能，可以提高提高连续对话时，知识库搜索的精度。开启该功能后，在进行知识库搜索时，会根据对话记录，利用 AI 补全问题缺失的信息。</p>
+</label>
+</div>
+</div>
+<div class="flex justify-end gap-2 mt-6">
+<button onclick="hideSearchConfigModal()" class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">取消</button>
+<button class="px-4 h-[32px] bg-primary text-white rounded-button hover:bg-secondary whitespace-nowrap">确定</button>
+</div>
+</div>
+</div>
+</div>
+<script>
+function showSearchConfigModal() {
+document.getElementById('searchConfigModal').classList.add('show');
+}
+function hideSearchConfigModal() {
+document.getElementById('searchConfigModal').classList.remove('show');
+}
+function switchTab(tabId) {
+document.querySelectorAll('.tab-content').forEach(tab => {
+tab.classList.add('hidden');
+});
+document.getElementById(tabId).classList.remove('hidden');
+document.querySelectorAll('.border-b button').forEach(btn => {
+btn.classList.remove('text-primary', 'border-b-2', 'border-primary');
+btn.classList.add('text-gray-500');
+});
+event.target.classList.remove('text-gray-500');
+event.target.classList.add('text-primary', 'border-b-2', 'border-primary');
+}
+</script>
+<!-- 检索历史 -->
+<div class="mt-4">
+<div class="flex items-center justify-between mb-2">
+<h3 class="text-sm font-medium text-gray-700">检索历史</h3>
+<button class="text-sm text-gray-400 hover:text-primary">
+<i class="fas fa-trash-alt mr-1"></i>清空历史
+</button>
+</div>
+<div class="space-y-2 max-h-[200px] overflow-auto">
+<div class="group flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-gray-100">
+<span class="text-sm text-gray-600">如何配置系统环境变量？</span>
+<div class="flex items-center gap-2">
+<button class="invisible group-hover:visible text-gray-400 hover:text-primary">
+<i class="fas fa-redo-alt"></i>
+</button>
+<button class="invisible group-hover:visible text-gray-400 hover:text-red-500">
+<i class="fas fa-trash-alt"></i>
+</button>
+</div>
+</div>
+<div class="group flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-gray-100">
+<span class="text-sm text-gray-600">部署流程的关键步骤有哪些？</span>
+<div class="flex items-center gap-2">
+<button class="invisible group-hover:visible text-gray-400 hover:text-primary">
+<i class="fas fa-redo-alt"></i>
+</button>
+<button class="invisible group-hover:visible text-gray-400 hover:text-red-500">
+<i class="fas fa-trash-alt"></i>
+</button>
+</div>
+</div>
+<div class="group flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-gray-100">
+<span class="text-sm text-gray-600">数据库如何进行备份和恢复？</span>
+<div class="flex items-center gap-2">
+<button class="invisible group-hover:visible text-gray-400 hover:text-primary">
+<i class="fas fa-redo-alt"></i>
+</button>
+<button class="invisible group-hover:visible text-gray-400 hover:text-red-500">
+<i class="fas fa-trash-alt"></i>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 右侧结果区域 -->
+<div class="flex-1">
+<h3 class="text-base font-medium mb-4">检索结果</h3>
+<div class="space-y-3">
+<div class="p-3 bg-gray-50 rounded-lg border border-gray-100">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-3">
+<span class="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded">相似度：0.92</span>
+<span class="text-gray-400 text-sm">来自：产品介绍文档.pdf</span>
+</div>
+<button class="text-primary hover:text-secondary">
+<i class="fas fa-arrow-up-right-from-square text-sm"></i>
+</button>
+</div>
+<p class="text-gray-700 text-sm">部署流程是一个至关重要的环节，需要仔细规划每一个步骤。首先，我们需要准备好所有必要的依赖项和配置文件。接着，需要确保数据库连接正确配置，并完成数据迁移工作。</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 删除确认弹窗 -->
+<div id="deleteModal" class="modal fixed inset-0 z-50 items-center justify-center">
+<div class="bg-white rounded-lg w-[400px]">
+<div class="flex items-center justify-between p-4 border-b">
+<h3 class="text-lg font-medium">删除知识库</h3>
+<button onclick="hideDeleteModal()" class="text-gray-400 hover:text-gray-500">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="p-6">
+<p class="text-gray-600 mb-6">确定要删除该知识库吗？删除后数据将无法恢复。</p>
+<div class="flex justify-end gap-2">
+<button onclick="hideDeleteModal()" class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">取消</button>
+<button class="px-4 h-[32px] bg-red-500 text-white rounded-button hover:bg-red-600 whitespace-nowrap">确定删除</button>
+</div>
+</div>
+</div>
+</div>
+<!-- 新建通用知识库弹窗 -->
+<div id="createModal" class="modal fixed inset-0 z-50 items-center justify-center">
+<div class="bg-white rounded-lg w-[600px]">
+<div class="flex items-center justify-between p-4 border-b">
+<h3 class="text-lg font-medium">新建通用知识库</h3>
+<button onclick="hideModal()" class="text-gray-400 hover:text-gray-500">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="p-6">
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">知识库名称</label>
+<input type="text" class="w-full h-[32px] px-3 border border-gray-300 rounded-button focus:border-primary focus:outline-none" placeholder="请输入知识库名称">
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">知识库描述</label>
+<textarea class="w-full h-[80px] px-3 py-2 border border-gray-300 rounded-button focus:border-primary focus:outline-none resize-none" placeholder="请输入知识库描述"></textarea>
+</div>
+<div id="vectorForms">
+<div class="vector-form mb-4 p-4 bg-gray-50 rounded-lg">
+<div class="flex items-center justify-between mb-2">
+<span class="text-sm font-medium text-gray-700">向量组 #1</span>
+<button onclick="removeVectorForm(this)" class="text-gray-400 hover:text-red-500">
+<i class="fas fa-trash-alt"></i>
+</button>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">向量模型</label>
+<div class="relative">
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none">
+<option value="">请选择向量模型</option>
+<option value="text2vec-base-paragraph">text2vec-base (段落切片)</option>
+<option value="text2vec-base-sentence">text2vec-base (句子切片)</option>
+<option value="text2vec-base-markdown">text2vec-base (Markdown切片)</option>
+<option value="text2vec-large-paragraph">text2vec-large (段落切片)</option>
+<option value="text2vec-large-sentence">text2vec-large (句子切片)</option>
+<option value="text2vec-large-markdown">text2vec-large (Markdown切片)</option>
+<option value="text2vec-multilingual-paragraph">text2vec-multilingual (段落切片)</option>
+<option value="text2vec-multilingual-sentence">text2vec-multilingual (句子切片)</option>
+<option value="text2vec-multilingual-markdown">text2vec-multilingual (Markdown切片)</option>
+</select>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">切片策略</label>
+<div class="relative">
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none">
+<option value="">请选择切片策略</option>
+<option value="paragraph">段落切片</option>
+<option value="sentence">句子切片</option>
+<option value="markdown">Markdown切片</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+</div>
+<button onclick="addVectorForm()" class="mb-6 px-4 h-[32px] bg-white border border-dashed border-gray-300 text-primary rounded-button hover:border-primary hover:text-primary whitespace-nowrap w-full">
+<i class="fas fa-plus mr-1"></i>添加向量组
+</button>
+<div class="flex justify-end gap-2">
+<button onclick="hideModal()" class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">取消</button>
+<button class="px-4 h-[32px] bg-primary text-white rounded-button hover:bg-secondary whitespace-nowrap">确定</button>
+</div>
+</div>
+</div>
+</div>
+<style>
+#sidebar.collapsed {
+width: 64px;
+}
+#sidebar.collapsed .sidebar-item span,
+#sidebar.collapsed .text-xl {
+display: none;
+}
+#sidebar.collapsed .sidebar-item {
+justify-content: center;
+padding: 12px;
+}
+#sidebar.collapsed .sidebar-item i {
+margin-right: 0;
+}
+#sidebar.collapsed .border-t {
+display: none;
+}
+</style>
+<script>
+function toggleSidebar() {
+const sidebar = document.getElementById('sidebar');
+sidebar.classList.toggle('collapsed');
+}
+function toggleDropdown(id) {
+const dropdown = document.getElementById(id);
+const dropdowns = document.querySelectorAll('[id^="actionDropdown"], [id^="newKnowledge"]');
+dropdowns.forEach(d => {
+if(d.id !== id) d.classList.add('hidden');
+});
+if (id === 'batchActions') {
+const checkedBoxes = document.querySelectorAll('input[type="checkbox"]:checked:not(:first-child)');
+}
+dropdown.classList.toggle('hidden');
+}
+document.addEventListener('click', function(e) {
+const dropdowns = document.querySelectorAll('[id^="actionDropdown"], [id^="newKnowledge"]');
+dropdowns.forEach(dropdown => {
+if (!dropdown.contains(e.target) && !e.target.closest('button[onclick^="toggleDropdown"]')) {
+dropdown.classList.add('hidden');
+}
+});
+});
+function showModal() {
+document.getElementById('createModal').classList.add('show');
+}
+function hideModal() {
+document.getElementById('createModal').classList.remove('show');
+}
+let formCount = 1;
+function addVectorForm() {
+formCount++;
+const template = `
+<div class="vector-form mb-4 p-4 bg-gray-50 rounded-lg">
+<div class="flex items-center justify-between mb-2">
+<span class="text-sm font-medium text-gray-700">向量组 #${formCount}</span>
+<button onclick="removeVectorForm(this)" class="text-gray-400 hover:text-red-500">
+<i class="fas fa-trash-alt"></i>
+</button>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">向量模型</label>
+<div class="relative">
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none">
+<option value="">请选择向量模型</option>
+<option value="text2vec-base-paragraph">text2vec-base (段落切片)</option>
+<option value="text2vec-base-sentence">text2vec-base (句子切片)</option>
+<option value="text2vec-base-markdown">text2vec-base (Markdown切片)</option>
+<option value="text2vec-large-paragraph">text2vec-large (段落切片)</option>
+<option value="text2vec-large-sentence">text2vec-large (句子切片)</option>
+<option value="text2vec-large-markdown">text2vec-large (Markdown切片)</option>
+<option value="text2vec-multilingual-paragraph">text2vec-multilingual (段落切片)</option>
+<option value="text2vec-multilingual-sentence">text2vec-multilingual (句子切片)</option>
+<option value="text2vec-multilingual-markdown">text2vec-multilingual (Markdown切片)</option>
+</select>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">切片策略</label>
+<div class="relative">
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none">
+<option value="">请选择切片策略</option>
+<option value="paragraph">段落切片</option>
+<option value="sentence">句子切片</option>
+<option value="markdown">Markdown切片</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+`;
+document.getElementById('vectorForms').insertAdjacentHTML('beforeend', template);
+}
+function removeVectorForm(btn) {
+if(document.querySelectorAll('.vector-form').length > 1) {
+btn.closest('.vector-form').remove();
+}
+}
+</script>
+<!-- 新建文件夹弹窗 -->
+<div id="createFolderModal" class="modal fixed inset-0 z-50 items-center justify-center">
+<div class="bg-white rounded-lg w-[600px]">
+<div class="flex items-center justify-between p-4 border-b">
+<h3 class="text-lg font-medium">新建文件夹</h3>
+<button onclick="hideFolderModal()" class="text-gray-400 hover:text-gray-500">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="p-6">
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">文件夹名称</label>
+<input type="text" class="w-full h-[32px] px-3 border border-gray-300 rounded-button focus:border-primary focus:outline-none" placeholder="请输入文件夹名称">
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">文件夹描述</label>
+<textarea class="w-full h-[80px] px-3 py-2 border border-gray-300 rounded-button focus:border-primary focus:outline-none resize-none" placeholder="请输入文件夹描述"></textarea>
+</div>
+<div class="flex justify-end gap-2">
+<button onclick="hideFolderModal()" class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">取消</button>
+<button class="px-4 h-[32px] bg-primary text-white rounded-button hover:bg-secondary whitespace-nowrap">确定</button>
+</div>
+</div>
+</div>
+</div>
+<!-- 新建问答知识库弹窗 -->
+<div id="createQAModal" class="modal fixed inset-0 z-50 items-center justify-center">
+<div class="bg-white rounded-lg w-[600px]">
+<div class="flex items-center justify-between p-4 border-b">
+<h3 class="text-lg font-medium">新建问答知识库</h3>
+<button onclick="hideQAModal()" class="text-gray-400 hover:text-gray-500">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="p-6">
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">知识库名称</label>
+<input type="text" class="w-full h-[32px] px-3 border border-gray-300 rounded-button focus:border-primary focus:outline-none" placeholder="请输入知识库名称">
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">知识库描述</label>
+<textarea class="w-full h-[80px] px-3 py-2 border border-gray-300 rounded-button focus:border-primary focus:outline-none resize-none" placeholder="请输入知识库描述"></textarea>
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">向量模型</label>
+<div class="relative">
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none appearance-none">
+<option value="">请选择向量模型</option>
+<option value="text2vec-base-paragraph">text2vec-base (段落切片)</option>
+<option value="text2vec-base-sentence">text2vec-base (句子切片)</option>
+<option value="text2vec-base-markdown">text2vec-base (Markdown切片)</option>
+<option value="text2vec-large-paragraph">text2vec-large (段落切片)</option>
+<option value="text2vec-large-sentence">text2vec-large (句子切片)</option>
+<option value="text2vec-large-markdown">text2vec-large (Markdown切片)</option>
+<option value="text2vec-multilingual-paragraph">text2vec-multilingual (段落切片)</option>
+<option value="text2vec-multilingual-sentence">text2vec-multilingual (句子切片)</option>
+<option value="text2vec-multilingual-markdown">text2vec-multilingual (Markdown切片)</option>
+</select>
+<i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+</div>
+</div>
+<div class="flex justify-end gap-2">
+<button onclick="hideQAModal()" class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">取消</button>
+<button class="px-4 h-[32px] bg-primary text-white rounded-button hover:bg-secondary whitespace-nowrap">确定</button>
+</div>
+</div>
+</div>
+</div>
+<script>
+function showDeleteModal() {
+document.getElementById('deleteModal').classList.add('show');
+}
+function hideDeleteModal() {
+document.getElementById('deleteModal').classList.remove('show');
+}
+function showQAModal() {
+document.getElementById('createQAModal').classList.add('show');
+}
+function hideQAModal() {
+document.getElementById('createQAModal').classList.remove('show');
+}
+function showFolderModal() {
+document.getElementById('createFolderModal').classList.add('show');
+}
+function hideFolderModal() {
+document.getElementById('createFolderModal').classList.remove('show');
+}
+function showUploadModal() {
+document.getElementById('uploadModal').classList.add('show');
+document.getElementById('fileList').innerHTML = '';
+document.getElementById('fileInput').value = '';
+}
+function hideUploadModal() {
+document.getElementById('uploadModal').classList.remove('show');
+}
+document.getElementById('fileInput').addEventListener('change', function(e) {
+const fileList = document.getElementById('fileList');
+fileList.innerHTML = '';
+Array.from(this.files).forEach(file => {
+const fileItem = document.createElement('div');
+fileItem.className = 'flex items-center justify-between p-2 bg-gray-50 rounded';
+fileItem.innerHTML = `
+<div class="flex items-center">
+<i class="far fa-file text-gray-400 mr-2"></i>
+<span class="text-sm text-gray-700">${file.name}</span>
+</div>
+<button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-red-500">
+<i class="fas fa-times"></i>
+</button>
+`;
+fileList.appendChild(fileItem);
+});
+});
+document.getElementById('uploadModal').addEventListener('dragover', function(e) {
+e.preventDefault();
+e.stopPropagation();
+}, false);
+document.getElementById('uploadModal').addEventListener('drop', function(e) {
+e.preventDefault();
+e.stopPropagation();
+const dt = e.dataTransfer;
+const files = dt.files;
+document.getElementById('fileInput').files = files;
+const event = new Event('change');
+document.getElementById('fileInput').dispatchEvent(event);
+}, false);
+</script>
+</body>
+</html>

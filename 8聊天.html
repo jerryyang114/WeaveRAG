@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知识库管理系统</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+theme: {
+extend: {
+colors: {
+primary: '#1677FF',
+secondary: '#4096ff'
+},
+borderRadius: {
+'none': '0px',
+'sm': '2px',
+DEFAULT: '4px',
+'md': '8px',
+'lg': '12px',
+'xl': '16px',
+'2xl': '20px',
+'3xl': '24px',
+'full': '9999px',
+'button': '4px'
+}
+}
+}
+}
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+input[type="range"] {
+-webkit-appearance: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+-webkit-appearance: none;
+appearance: none;
+width: 16px;
+height: 16px;
+background: #fff;
+border: 2px solid #1677FF;
+border-radius: 50%;
+cursor: pointer;
+margin-top: -7px;
+}
+input[type="range"]::-moz-range-thumb {
+width: 16px;
+height: 16px;
+background: #fff;
+border: 2px solid #1677FF;
+border-radius: 50%;
+cursor: pointer;
+}
+.sidebar-item {
+display: flex;
+align-items: center;
+padding: 12px 24px;
+color: #ffffff;
+opacity: 0.8;
+transition: all 0.3s;
+}
+.sidebar-item:hover {
+opacity: 1;
+background: rgba(255,255,255,0.1);
+}
+.sidebar-item.active {
+opacity: 1;
+background: rgba(255,255,255,0.1);
+}
+.sidebar-item i {
+width: 20px;
+height: 20px;
+display: flex;
+justify-content: center;
+align-items: center;
+margin-right: 8px;
+}
+.search-input {
+border: 1px solid #d9d9d9;
+transition: all 0.3s;
+}
+.search-input:focus {
+border-color: #1677FF;
+box-shadow: 0 0 0 2px rgba(22,119,255,0.2);
+}
+.card {
+transition: all 0.3s;
+}
+.card:hover {
+box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.modal {
+display: none;
+background: rgba(0,0,0,0.45);
+}
+.modal.show {
+display: flex;
+}
+</style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+<div class="flex min-h-screen w-screen max-w-[1920px] mx-auto">
+<!-- 左侧导航 -->
+<div class="w-[200px] bg-[#001529] flex-shrink-0 flex flex-col justify-between transition-all duration-300" id="sidebar">
+<div>
+<div class="h-[64px] flex items-center px-6 justify-between">
+<span class="text-white text-xl font-bold">Weave RAG</span>
+<button onclick="toggleSidebar()" class="text-white hover:text-gray-300">
+<i class="fas fa-bars"></i>
+</button>
+</div>
+<div class="flex flex-col">
+<a href="#" class="sidebar-item">
+<i class="fas fa-database"></i>
+<span>知识库</span>
+</a>
+<a href="#" class="sidebar-item active">
+<i class="fas fa-comments"></i>
+<span>聊天</span>
+</a>
+<a href="#" class="sidebar-item">
+<i class="fas fa-code"></i>
+<span>Prompt管理</span>
+</a>
+</div>
+</div>
+<!-- 用户信息 -->
+<div class="border-t border-gray-700 p-4">
+<div class="flex items-center">
+<img src="https://ai-public.mastergo.com/ai/img_res/2e27f63843aa1dba31e76ff7f970e482.jpg" class="w-10 h-10 rounded-full object-cover mr-3">
+<div class="flex-1">
+<div class="text-white text-sm">Thomas Anderson</div>
+<div class="text-gray-400 text-xs">Lead Developer</div>
+</div>
+<button class="text-gray-400 hover:text-white">
+<i class="fas fa-sign-out-alt"></i>
+</button>
+</div>
+</div>
+</div>
+<!-- 右侧内容区 -->
+<div class="flex-1 flex h-screen">
+<!-- 助理和聊天记录列表 -->
+<div class="w-[280px] border-r border-gray-200 flex flex-col">
+<!-- 助理列表 -->
+<div class="p-4 border-b border-gray-200">
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-lg font-medium">我的助理</h2>
+<button onclick="showAssistantModal()" class="text-primary hover:text-secondary">
+<i class="fas fa-plus"></i>
+</button>
+</div>
+<div class="space-y-3">
+<div class="card bg-white p-3 rounded-lg cursor-pointer border border-gray-200 hover:border-primary group">
+<div class="flex items-center">
+<img src="https://mastergo.com/ai/api/search-image?query=A friendly AI assistant avatar with modern minimalist style, blue color theme&width=40&height=40&orientation=squarish" class="w-10 h-10 rounded-full mr-3">
+<div class="flex-1">
+<div class="font-medium">通用助理</div>
+<div class="text-xs text-gray-500">基础问答服务</div>
+</div>
+<button class="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+<i class="fas fa-trash-alt"></i>
+</button>
+</div>
+</div>
+<div class="card bg-white p-3 rounded-lg cursor-pointer border border-gray-200">
+<div class="flex items-center">
+<img src="https://ai-public.mastergo.com/ai/img_res/be98ec9e400852ec9dc9a7eb8418b489.jpg" class="w-10 h-10 rounded-full mr-3">
+<div class="flex-1">
+<div class="font-medium">技术助理</div>
+<div class="text-xs text-gray-500">专业技术解答</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 聊天记录 -->
+<div class="flex-1 p-4 overflow-y-auto">
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-lg font-medium">聊天记录</h2>
+<button class="text-primary hover:text-secondary">
+<i class="fas fa-plus"></i>
+</button>
+</div>
+<div class="space-y-3">
+<div class="card bg-white p-3 rounded-lg cursor-pointer border border-gray-200 group">
+<div class="flex justify-between items-start">
+<div class="flex-1">
+<div class="text-sm font-medium mb-1 truncate">向量数据库原理解析</div>
+<div class="text-xs text-gray-500">今天 14:30</div>
+</div>
+<button class="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+<i class="fas fa-trash-alt"></i>
+</button>
+</div>
+</div>
+<div class="card bg-white p-3 rounded-lg cursor-pointer border border-gray-200">
+<div class="text-sm font-medium mb-1 truncate">大语言模型架构详解</div>
+<div class="text-xs text-gray-500">昨天 16:45</div>
+</div>
+<div class="card bg-white p-3 rounded-lg cursor-pointer border border-gray-200">
+<div class="text-sm font-medium mb-1 truncate">Transformer原理解析</div>
+<div class="text-xs text-gray-500">2024-01-15</div>
+</div>
+<div class="card bg-white p-3 rounded-lg cursor-pointer border border-gray-200">
+<div class="text-sm font-medium mb-1 truncate">深度学习基础概念</div>
+<div class="text-xs text-gray-500">2024-01-14</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 右侧聊天区域 -->
+<div class="flex-1 flex flex-col">
+<!-- 顶部信息 -->
+<div class="h-[60px] border-b border-gray-200 flex items-center justify-between px-6">
+<div class="flex items-center">
+<img src="https://mastergo.com/ai/api/search-image?query=A friendly AI assistant avatar with modern minimalist style, blue color theme&width=40&height=40&orientation=squarish" class="w-8 h-8 rounded-full mr-3">
+<div>
+<div class="font-medium">通用助理</div>
+<div class="text-xs text-gray-500">基础问答服务</div>
+</div>
+</div>
+</div>
+<!-- 聊天窗口 -->
+<div class="flex-1 bg-white rounded-lg border border-gray-200 flex flex-col">
+<!-- 聊天记录 -->
+<div class="flex-1 p-6 overflow-y-auto bg-gray-50">
+<div class="max-w-[800px] mx-auto">
+<!-- AI消息 -->
+<div class="flex items-start mb-6">
+<img src="https://mastergo.com/ai/api/search-image?query=A friendly AI assistant avatar with modern minimalist style, blue color theme&width=40&height=40&orientation=squarish"
+class="w-8 h-8 rounded-full mr-3">
+<div class="flex-1">
+<div class="bg-white rounded-lg p-4 shadow-sm">
+<p class="text-gray-800">你好！我是你的AI助理，有什么我可以帮你的吗？</p>
+</div>
+<div class="flex items-center mt-2">
+<button class="text-gray-400 hover:text-primary mr-4">
+<i class="far fa-copy"></i>
+</button>
+<button class="text-gray-400 hover:text-primary">
+<i class="far fa-thumbs-up"></i>
+</button>
+</div>
+</div>
+</div>
+<!-- 用户消息 -->
+<div class="flex items-start mb-6 justify-end">
+<div class="flex-1 text-right">
+<div class="bg-primary bg-opacity-10 rounded-lg p-4 inline-block text-left shadow-sm">
+<p class="text-gray-800">你能帮我解释一下向量数据库的原理吗？</p>
+</div>
+</div>
+<img src="https://ai-public.mastergo.com/ai/img_res/6521416f1a6501cdcc1411d740366402.jpg"
+class="w-8 h-8 rounded-full ml-3">
+</div>
+</div>
+</div>
+<!-- 输入区域 -->
+<div class="border-t p-4 bg-white">
+<div class="flex items-center max-w-[800px] mx-auto">
+<button class="text-gray-400 hover:text-primary mr-4">
+<i class="far fa-image"></i>
+</button>
+<button class="text-gray-400 hover:text-primary mr-4">
+<i class="far fa-file"></i>
+</button>
+<div class="flex-1 relative">
+<textarea class="w-full border border-gray-200 rounded-lg px-4 py-2 pr-12 resize-none h-[40px] focus:border-primary focus:outline-none"
+placeholder="输入消息..."></textarea>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 text-primary hover:text-secondary">
+<i class="fas fa-paper-plane"></i>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 新建助理弹窗 -->
+<div id="createAssistantModal" class="modal fixed inset-0 z-50 items-center justify-center">
+<div class="bg-white rounded-lg w-[600px] m-4">
+<div class="flex items-center justify-between p-4 border-b">
+<h3 class="text-lg font-medium">新建助理</h3>
+<button onclick="hideAssistantModal()" class="text-gray-400 hover:text-gray-500">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="p-6">
+<!-- Tab切换按钮 -->
+<div class="flex border-b mb-6">
+<button class="px-4 py-2 text-primary border-b-2 border-primary" onclick="switchTab('assistant')">助理设置</button>
+<button class="px-4 py-2 text-gray-500 hover:text-primary" onclick="switchTab('knowledge')">知识库配置</button>
+<button class="px-4 py-2 text-gray-500 hover:text-primary" onclick="switchTab('prompt')">提示引擎</button>
+<button class="px-4 py-2 text-gray-500 hover:text-primary" onclick="switchTab('model')">模型设置</button>
+</div>
+<!-- 助理设置Tab -->
+<div id="assistantTab" class="tab-content">
+<div class="space-y-4">
+<div class="mb-6 text-center">
+<div class="inline-block relative mb-2">
+<img src="https://ai-public.mastergo.com/ai/img_res/f4acbf8f339012860339b9eb108b285b.jpg"
+class="w-20 h-20 rounded-full">
+<button class="absolute bottom-0 right-0 w-6 h-6 bg-white rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-primary">
+<i class="fas fa-camera"></i>
+</button>
+</div>
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">助理名称</label>
+<input type="text" class="w-full h-[32px] px-3 border border-gray-300 rounded-button focus:border-primary focus:outline-none" placeholder="请输入助理名称">
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">助理描述</label>
+<textarea class="w-full h-[80px] px-3 py-2 border border-gray-300 rounded-button focus:border-primary focus:outline-none resize-none"
+placeholder="请输入助理的描述信息"></textarea>
+</div>
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">开场白</label>
+<textarea class="w-full h-[60px] px-3 py-2 border border-gray-300 rounded-button focus:border-primary focus:outline-none resize-none"
+placeholder="请输入助理的开场白内容"></textarea>
+</div>
+<div class="space-y-4">
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">空回复</label>
+<div class="text-xs text-gray-500 mb-2">当知识库中没有相关内容时，允许模型自由发挥。如果希望LLM在未检索到任何内容时提出自己的意见，请将此留空</div>
+<textarea class="w-full h-[60px] px-3 py-2 border border-gray-300 rounded-button focus:border-primary focus:outline-none resize-none" placeholder="请输入空回复内容"></textarea>
+</div>
+</div>
+</div>
+</div>
+<!-- 提示引擎Tab -->
+<div id="promptTab" class="tab-content hidden">
+<div class="space-y-6">
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-2">系统 Prompt</label>
+<textarea class="w-full h-[120px] px-3 py-2 border border-gray-300 rounded-button focus:border-primary focus:outline-none resize-none"
+placeholder="请输入系统 Prompt，使用 {变量名} 形式引用变量"></textarea>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<div class="text-sm font-medium">多轮对话优化</div>
+<div class="text-xs text-gray-500">优化多轮对话中的知识库查询，会额外消耗token</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input type="checkbox" class="sr-only peer">
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div>
+<div class="flex justify-between items-center mb-2">
+<label class="text-sm font-medium text-gray-700">变量配置</label>
+<button class="text-primary hover:text-secondary text-sm" onclick="addVariable()">
+添加变量 <i class="fas fa-plus ml-1"></i>
+</button>
+</div>
+<div id="variableContainer" class="space-y-2">
+<div class="flex items-center gap-2">
+<input type="text" placeholder="关键字" class="flex-1 h-[32px] px-3 border border-gray-300 rounded-button focus:border-primary focus:outline-none">
+<input type="text" placeholder="关键字内容" class="flex-1 h-[32px] px-3 border border-gray-300 rounded-button focus:border-primary focus:outline-none">
+<button class="text-gray-400 hover:text-red-500" onclick="removeVariable(this)">
+<i class="fas fa-trash-alt"></i>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 知识库配置Tab -->
+<div id="knowledgeTab" class="tab-content hidden">
+<div class="space-y-6">
+<div class="space-y-4">
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">知识库</label>
+<div class="relative">
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none appearance-none">
+<option value="">请选择知识库</option>
+<option value="product">产品知识库</option>
+<option value="technical">技术文档库</option>
+<option value="customer">客服问答库</option>
+</select>
+<i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+</div>
+</div>
+
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">检索模式</label>
+<div class="relative">
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none appearance-none" onchange="toggleParsingStrategy(this.value)">
+<option value="">请选择检索模式</option>
+<option value="semantic">语义检索</option>
+<option value="hybrid">混合检索</option>
+</select>
+<i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+</div>
+</div>
+
+<div id="semanticStrategy" class="mb-4 hidden">
+<label class="block text-sm font-medium text-gray-700 mb-1">解析策略</label>
+<div class="relative">
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none appearance-none">
+<option value="">请选择解析策略</option>
+<option value="strategy1">策略一</option>
+<option value="strategy2">策略二</option>
+<option value="strategy3">策略三</option>
+</select>
+<i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+</div>
+</div>
+
+<div id="hybridStrategy" class="space-y-4 hidden">
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">解析策略 1</label>
+<div class="relative">
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none appearance-none">
+<option value="">请选择解析策略 1</option>
+<option value="strategy1">策略一</option>
+<option value="strategy2">策略二</option>
+<option value="strategy3">策略三</option>
+</select>
+<i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+</div>
+</div>
+
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">解析策略 2</label>
+<div class="relative">
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none appearance-none">
+<option value="">请选择解析策略 2</option>
+<option value="strategy1">策略一</option>
+<option value="strategy2">策略二</option>
+<option value="strategy3">策略三</option>
+</select>
+<i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+</div>
+</div>
+</div>
+
+<div class="flex items-center justify-between mb-4">
+<div>
+<div class="text-sm font-medium mb-1">结果重排</div>
+<div class="text-xs text-gray-500">对检索结果进行重新排序</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input type="checkbox" class="sr-only peer">
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+
+<div>
+<div class="flex justify-between mb-1">
+<label class="text-sm font-medium text-gray-700">引用上限</label>
+<span class="text-sm text-gray-600" id="citationLimitValue">5</span>
+</div>
+<input type="range" min="1" max="10" step="1" value="5"
+class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+oninput="document.getElementById('citationLimitValue').textContent = this.value">
+</div>
+</div>
+<div>
+<div class="flex justify-between mb-1">
+<label class="text-sm font-medium text-gray-700">相似度阈值</label>
+<span class="text-sm text-gray-600" id="similarityValue">0.7</span>
+</div>
+<input type="range" min="0" max="1" step="0.1" value="0.7"
+class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+oninput="document.getElementById('similarityValue').textContent = this.value">
+</div>
+<div>
+<div class="flex justify-between mb-1">
+<label class="text-sm font-medium text-gray-700">关键词相似度权重</label>
+<span class="text-sm text-gray-600" id="keywordValue">0.5</span>
+</div>
+<input type="range" min="0" max="1" step="0.1" value="0.5"
+class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+oninput="document.getElementById('keywordValue').textContent = this.value">
+</div>
+<div>
+<div class="flex justify-between mb-1">
+<label class="text-sm font-medium text-gray-700">Top N</label>
+<span class="text-sm text-gray-600" id="topNValue">3</span>
+</div>
+<input type="range" min="1" max="10" step="1" value="3"
+class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+oninput="document.getElementById('topNValue').textContent = this.value">
+</div>
+</div>
+</div>
+<!-- 模型设置Tab -->
+<div id="modelTab" class="tab-content hidden">
+<div class="space-y-6">
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-2">模型选择</label>
+<div class="relative">
+<select class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none appearance-none">
+<option value="">请选择AI模型</option>
+<option value="gpt-4">GPT-4</option>
+<option value="gpt-3.5">GPT-3.5</option>
+<option value="claude">Claude</option>
+</select>
+<i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+</div>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-2">模式选择</label>
+<div class="relative">
+<select id="modeSelect" class="w-full h-[32px] px-3 bg-white border border-gray-300 rounded-button focus:border-primary focus:outline-none appearance-none" onchange="updateModeSettings()">
+<option value="">请选择模式</option>
+<option value="creative">创意模式</option>
+<option value="balanced">平衡模式</option>
+<option value="precise">精确模式</option>
+</select>
+<i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+</div>
+</div>
+<div id="modeSettings" class="space-y-4">
+<div>
+<div class="flex justify-between mb-1">
+<label class="text-sm font-medium text-gray-700">温度 (Temperature)</label>
+<span class="text-sm text-gray-600" id="temperatureValue">0.7</span>
+</div>
+<input type="range" min="0" max="2" step="0.1" value="0.7"
+class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+oninput="document.getElementById('temperatureValue').textContent = this.value">
+</div>
+<div>
+<div class="flex justify-between mb-1">
+<label class="text-sm font-medium text-gray-700">Top P</label>
+<span class="text-sm text-gray-600" id="topPValue">0.9</span>
+</div>
+<input type="range" min="0" max="1" step="0.1" value="0.9"
+class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+oninput="document.getElementById('topPValue').textContent = this.value">
+</div>
+<div>
+<div class="flex justify-between mb-1">
+<label class="text-sm font-medium text-gray-700">存在惩罚 (Presence Penalty)</label>
+<span class="text-sm text-gray-600" id="presencePenaltyValue">0.0</span>
+</div>
+<input type="range" min="-2" max="2" step="0.1" value="0"
+class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+oninput="document.getElementById('presencePenaltyValue').textContent = this.value">
+</div>
+<div>
+<div class="flex justify-between mb-1">
+<label class="text-sm font-medium text-gray-700">频率惩罚 (Frequency Penalty)</label>
+<span class="text-sm text-gray-600" id="frequencyPenaltyValue">0.0</span>
+</div>
+<input type="range" min="-2" max="2" step="0.1" value="0"
+class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+oninput="document.getElementById('frequencyPenaltyValue').textContent = this.value">
+</div>
+<div>
+<div class="flex justify-between mb-1">
+<label class="text-sm font-medium text-gray-700">最大 Token 数</label>
+<span class="text-sm text-gray-600" id="maxTokensValue">2048</span>
+</div>
+<input type="range" min="1" max="4096" step="1" value="2048"
+class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+oninput="document.getElementById('maxTokensValue').textContent = this.value">
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 高级设置Tab -->
+<div id="advancedTab" class="tab-content hidden">
+<div class="space-y-4 px-5">
+<div class="mb-4">
+<label class="block text-sm font-medium text-gray-700 mb-1">空回复</label>
+<div class="text-xs text-gray-500 mb-2">当知识库中没有相关内容时，允许模型自由发挥。如果希望LLM在未检索到任何内容时提出自己的意见，请将此留空</div>
+<textarea class="w-full h-[60px] px-3 py-2 border border-gray-300 rounded-button focus:border-primary focus:outline-none resize-none" placeholder="请输入空回复内容"></textarea>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<div class="text-sm font-medium mb-1">显示引文</div>
+<div class="text-xs text-gray-500">在回答中显示引用的知识库内容来源</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input type="checkbox" class="sr-only peer">
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<div class="text-sm font-medium mb-1">关键词分析</div>
+<div class="text-xs text-gray-500">对用户问题进行关键词分析并标注</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input type="checkbox" class="sr-only peer">
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<div class="text-sm font-medium mb-1">多轮对话优化</div>
+<div class="text-xs text-gray-500">优化多轮对话中的知识库查询，会额外消耗token</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input type="checkbox" class="sr-only peer">
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div>
+<label class="text-sm font-medium mb-1 block">提示引擎配置</label>
+<div class="space-y-6">
+<div>
+<div class="flex justify-between mb-1">
+<label class="text-xs text-gray-500">相似度阈值</label>
+<span class="text-xs text-gray-500" id="similarityValue">0.7</span>
+</div>
+<div class="relative w-full">
+<input type="range" min="0" max="1" step="0.1" value="0.7"
+class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+oninput="document.getElementById('similarityValue').textContent = this.value">
+</div>
+</div>
+<div>
+<div class="flex justify-between mb-1">
+<label class="text-xs text-gray-500">关键词相似度权重</label>
+<span class="text-xs text-gray-500" id="keywordValue">0.5</span>
+</div>
+<div class="relative w-full">
+<input type="range" min="0" max="1" step="0.1" value="0.5"
+class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+oninput="document.getElementById('keywordValue').textContent = this.value">
+</div>
+</div>
+<div>
+<div class="flex justify-between mb-1">
+<label class="text-xs text-gray-500">Top N</label>
+<span class="text-xs text-gray-500" id="topNValue">3</span>
+</div>
+<div class="relative w-full">
+<input type="range" min="1" max="10" step="1" value="3"
+class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+oninput="document.getElementById('topNValue').textContent = this.value">
+</div>
+</div>
+</div>
+</div>
+<div>
+<label class="text-sm font-medium mb-1 block">变量配置</label>
+<div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+<div class="mb-3">
+<div class="text-xs text-gray-500 mb-2">配置关键字可以帮助优化检索准确度。您可以添加多个关键字及其内容进行匹配，系统会根据关键字进行相关内容的检索和匹配。</div>
+<button class="text-primary hover:text-secondary text-sm">
+添加关键字 <i class="fas fa-plus ml-1"></i>
+</button>
+</div>
+<div class="space-y-3">
+<div class="flex items-center gap-2">
+<input type="text" placeholder="关键字" class="flex-1 h-[32px] px-3 border border-gray-300 rounded-button focus:border-primary focus:outline-none">
+<input type="text" placeholder="关键字内容" class="flex-1 h-[32px] px-3 border border-gray-300 rounded-button focus:border-primary focus:outline-none">
+<button class="text-gray-400 hover:text-red-500">
+<i class="fas fa-trash-alt"></i>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="flex justify-end gap-2 p-5">
+<button onclick="hideAssistantModal()" class="px-4 h-[32px] bg-white border border-[#d9d9d9] text-gray-600 rounded-button hover:border-primary hover:text-primary whitespace-nowrap">取消</button>
+<button class="px-4 h-[32px] bg-primary text-white rounded-button hover:bg-secondary whitespace-nowrap">确定</button>
+</div>
+</div>
+</div>
+</div>
+<style>
+#sidebar.collapsed {
+width: 64px;
+}
+#sidebar.collapsed .sidebar-item span,
+#sidebar.collapsed .text-xl {
+display: none;
+}
+#sidebar.collapsed .sidebar-item {
+justify-content: center;
+padding: 12px;
+}
+#sidebar.collapsed .sidebar-item i {
+margin-right: 0;
+}
+#sidebar.collapsed .border-t {
+display: none;
+}
+</style>
+<script>
+function toggleSidebar() {
+const sidebar = document.getElementById('sidebar');
+sidebar.classList.toggle('collapsed');
+}
+function switchTab(tab) {
+document.querySelectorAll('.tab-content').forEach(content => {
+content.classList.add('hidden');
+});
+document.getElementById(tab + 'Tab').classList.remove('hidden');
+document.querySelectorAll('.flex.border-b button').forEach(btn => {
+btn.classList.remove('text-primary', 'border-b-2', 'border-primary');
+btn.classList.add('text-gray-500');
+});
+event.target.classList.remove('text-gray-500');
+event.target.classList.add('text-primary', 'border-b-2', 'border-primary');
+}
+function showAssistantModal() {
+document.getElementById('createAssistantModal').classList.add('show');
+}
+function hideAssistantModal() {
+document.getElementById('createAssistantModal').classList.remove('show');
+}
+function addVariable() {
+const container = document.getElementById('variableContainer');
+const div = document.createElement('div');
+div.className = 'flex items-center gap-2';
+div.innerHTML = `
+<input type="text" placeholder="关键字" class="flex-1 h-[32px] px-3 border border-gray-300 rounded-button focus:border-primary focus:outline-none">
+<input type="text" placeholder="关键字内容" class="flex-1 h-[32px] px-3 border border-gray-300 rounded-button focus:border-primary focus:outline-none">
+<button class="text-gray-400 hover:text-red-500" onclick="removeVariable(this)">
+<i class="fas fa-trash-alt"></i>
+</button>
+`;
+container.appendChild(div);
+}
+function removeVariable(button) {
+button.parentElement.remove();
+}
+function toggleParsingStrategy(value) {
+  const semanticStrategy = document.getElementById('semanticStrategy');
+  const hybridStrategy = document.getElementById('hybridStrategy');
+  
+  if (value === 'semantic') {
+    semanticStrategy.classList.remove('hidden');
+    hybridStrategy.classList.add('hidden');
+  } else if (value === 'hybrid') {
+    semanticStrategy.classList.add('hidden');
+    hybridStrategy.classList.remove('hidden');
+  } else {
+    semanticStrategy.classList.add('hidden');
+    hybridStrategy.classList.add('hidden');
+  }
+}
+
+function updateModeSettings() {
+const select = document.getElementById('modeSelect');
+const mode = select.value;
+const temperature = document.getElementById('temperatureValue');
+const topP = document.getElementById('topPValue');
+const presencePenalty = document.getElementById('presencePenaltyValue');
+const frequencyPenalty = document.getElementById('frequencyPenaltyValue');
+const maxTokens = document.getElementById('maxTokensValue');
+switch(mode) {
+case 'creative':
+temperature.textContent = '0.8';
+topP.textContent = '0.9';
+presencePenalty.textContent = '0.0';
+frequencyPenalty.textContent = '0.0';
+maxTokens.textContent = '2048';
+break;
+case 'balanced':
+temperature.textContent = '0.7';
+topP.textContent = '0.7';
+presencePenalty.textContent = '0.0';
+frequencyPenalty.textContent = '0.0';
+maxTokens.textContent = '2048';
+break;
+case 'precise':
+temperature.textContent = '0.2';
+topP.textContent = '0.5';
+presencePenalty.textContent = '0.0';
+frequencyPenalty.textContent = '0.0';
+maxTokens.textContent = '2048';
+break;
+}
+}
+document.addEventListener('click', function(e) {
+if (e.target.closest('.card')) {
+const messages = document.querySelector('.flex-1.bg-white');
+messages.scrollTop = messages.scrollHeight;
+}
+});
+</script>
+</body>
+</html>
